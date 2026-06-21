@@ -1,0 +1,21 @@
+{
+  "network": "nexus_testnet",
+  "chainId": 3945,
+  "deployedAt": "2026-06-21T16:39:30.000Z",
+  "deployer": "0x0326350B229f40b1Ca95324025B9434dD076FD65",
+  "rpcUsed": "https://testnet.explorer.nexus.xyz/api/eth-rpc",
+  "contracts": {
+    "ReputationRegistry": {
+      "address": "0x57832D20f406AE9d787EB46ABA214CF0D0aA2420",
+      "txHash": "0x89bb7aa0ff7de002d8029e8ab8663af8f8f580f159ac57aaa2dedbae8dbfdef7",
+      "blockNumber": 3844254,
+      "gasUsed": "1010084"
+    },
+    "Escrow": {
+      "address": "0x4B026F5475502507800ffC95B1bF464487C13dBe",
+      "txHash": "0x53dec944b60742d2a1bd70073da407d0f75104bb02a4bec3bc67e13ef15d7297",
+      "blockNumber": 3844265,
+      "gasUsed": "1349222"
+    }
+  }
+}
