@@ -50,7 +50,7 @@ const nexusMainnet = {
 const config = getDefaultConfig({
   appName: "NexEscrow",
   projectId: "YOUR_PROJECT_ID", // Replace with real WalletConnect ID in production
-  chains: [nexusTestnet, nexusMainnet],
+  chains: [nexusMainnet, nexusTestnet],
   ssr: true, // If your dApp uses server side rendering (SSR)
 });
 

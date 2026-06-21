@@ -20,7 +20,7 @@ for (const name of contracts) {
 }
 
 // Copy deployments
-const deploymentsFile = path.join(__dirname, "deployments", "nexus_testnet.json");
+const deploymentsFile = path.join(__dirname, "deployments", "nexus_mainnet.json");
 const deployments = JSON.parse(fs.readFileSync(deploymentsFile, "utf8"));
 
 const output = {
@@ -37,4 +37,4 @@ fs.writeFileSync(
   `export const contracts = ${JSON.stringify(output, null, 2)};\n`
 );
 
-console.log("Artifacts copied to frontend.");
+console.log("Artifacts copied to frontend (Mainnet).");

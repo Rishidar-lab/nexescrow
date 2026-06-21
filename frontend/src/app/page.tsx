@@ -138,7 +138,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm">
                 <li className="flex justify-between">
                   <span className="text-slate-400">Network</span>
-                  <span className="font-mono">Nexus Testnet</span>
+                  <span className="font-mono">Nexus Mainnet</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-slate-400">Escrow Contract</span>

@@ -559,5 +559,5 @@ export const contracts = {
     "Escrow": "0x4B026F5475502507800ffC95B1bF464487C13dBe",
     "ReputationRegistry": "0x57832D20f406AE9d787EB46ABA214CF0D0aA2420"
   },
-  "chainId": 3945
+  "chainId": 3946
 };
