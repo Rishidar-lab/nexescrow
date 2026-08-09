@@ -6,9 +6,10 @@ import { NexusEscrow } from "../src/NexusEscrow.sol";
 
 /// @notice Deploys NexusEscrow. Owner/fee recipient default to the deployer if unset.
 ///
-/// Usage:
+/// Usage (see contracts/README.md for the full command, incl. Blockscout verification):
 ///   forge script script/DeployNexusEscrow.s.sol:DeployNexusEscrow \
-///     --rpc-url nexus_testnet --broadcast --verify -vvvv
+///     --rpc-url nexus_testnet --broadcast --verify \
+///     --verifier blockscout --verifier-url https://testnet.explorer.nexus.xyz/api/ -vvvv
 contract DeployNexusEscrow is Script {
     function run() external returns (NexusEscrow escrow) {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");

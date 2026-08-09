@@ -13,10 +13,11 @@ line_length = 100
 tab_width = 4
 bracket_spacing = true
 
+# Confirmed against docs.nexus.xyz. Nexus explorers run Blockscout, not Etherscan —
+# verify with `--verifier blockscout --verifier-url https://<explorer>/api/` rather
+# than the [etherscan] table (that's Etherscan-API-specific).
 [rpc_endpoints]
-nexus_testnet = "${NEXUS_TESTNET_RPC_URL}"
-
-[etherscan]
-nexus_testnet = { key = "${NEXUS_EXPLORER_API_KEY}", url = "${NEXUS_EXPLORER_API_URL}" }
+nexus_mainnet = "https://mainnet.rpc.nexus.xyz"
+nexus_testnet = "https://testnet.rpc.nexus.xyz"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

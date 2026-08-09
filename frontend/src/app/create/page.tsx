@@ -137,7 +137,7 @@ export default function CreateAgreementPage() {
               onClick={() => setTokenType("native")}
               className={`chip ${tokenType === "native" ? "chip-active" : ""}`}
             >
-              Native NXS
+              Native NEX
             </button>
             <button
               type="button"

@@ -9,7 +9,7 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title NexusEscrow
 /// @notice Non-custodial, milestone-based escrow for two-party agreements settled in
-///         native NXS or any ERC-20 token, with third-party arbitration on disputes.
+///         native NEX or any ERC-20 token, with third-party arbitration on disputes.
 /// @dev Milestones for a given agreement release strictly in order. There is no
 ///      unilateral timeout release: a counterparty that goes unresponsive is handled
 ///      by raising a dispute and letting the designated arbiter decide, not by a clock.
@@ -169,7 +169,7 @@ contract NexusEscrow is ReentrancyGuard, Ownable2Step, Pausable {
     /// @notice Creates a new escrow agreement. Caller becomes the buyer.
     /// @param seller Counterparty receiving milestone payouts.
     /// @param arbiter Neutral third party who resolves disputes for this agreement.
-    /// @param token ERC-20 token address, or address(0) for native NXS.
+    /// @param token ERC-20 token address, or address(0) for native NEX.
     /// @param milestoneAmounts Ordered milestone payout amounts; must sum to the total.
     /// @param fundingDeadline Unix timestamp by which the buyer must call `fund`, or 0 for none.
     function createAgreement(

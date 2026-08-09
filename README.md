@@ -15,7 +15,7 @@
 
 ## Overview
 
-Two parties agree on a milestone-based deliverable. The buyer locks funds (native NXS
+Two parties agree on a milestone-based deliverable. The buyer locks funds (native NEX
 or any ERC-20) into `NexusEscrow`; the seller gets paid out milestone by milestone as
 the buyer approves each one. Neither party ever custodies the other's funds, and
 neither can unilaterally seize them — if buyer and seller disagree on a milestone,
@@ -30,7 +30,7 @@ a third-party arbiter chosen at agreement creation splits that milestone's payou
   is deliberately no unilateral timeout-release — a ghosted counterparty is resolved by
   the arbiter, not a clock, which keeps the state machine small and removes a class of
   timeout-griefing attacks.
-- **Native NXS or any ERC-20**, via `SafeERC20`.
+- **Native NEX or any ERC-20**, via `SafeERC20`.
 - **Protocol fee**, in basis points, capped at 10% (`MAX_FEE_BPS`), snapshotted onto
   each agreement at creation time so a later fee change never affects agreements
   already in flight. Fee is only ever taken from the portion actually paid to the
@@ -54,7 +54,24 @@ a third-party arbiter chosen at agreement creation splits that milestone's payou
   with an indexer/subgraph instead of a full log scan (see
   [`frontend/src/hooks/useMyAgreements.ts`](frontend/src/hooks/useMyAgreements.ts)).
 - **Audit status:** unaudited. This is a from-scratch rebuild, not yet reviewed by a
-  third party — treat it as testnet/portfolio-grade until it has been.
+  third party. The frontend defaults to Nexus **mainnet** — anything deployed there
+  holds real user funds against unaudited code; deploy to testnet while iterating.
+
+## Networks
+
+Confirmed against [docs.nexus.xyz](https://docs.nexus.xyz/network/building-on-nexus/endpoints):
+
+| | Mainnet | Testnet |
+|---|---|---|
+| Chain ID | `3946` | `3945` |
+| RPC | `https://mainnet.rpc.nexus.xyz` | `https://testnet.rpc.nexus.xyz` |
+| Explorer | `https://explorer.nexus.xyz` | `https://testnet.explorer.nexus.xyz` |
+| Currency | NEX (18 decimals) | NEX |
+
+Both are pre-configured as named endpoints (`nexus_mainnet` / `nexus_testnet`) in
+`contracts/foundry.toml`. The frontend (`frontend/src/lib/chain.ts`) defaults to
+mainnet; override `NEXT_PUBLIC_NEXUS_RPC_URL`/`NEXT_PUBLIC_NEXUS_EXPLORER_URL` (and
+flip `id`/`testnet` in `chain.ts`) to point a build at testnet instead.
 
 ## Quick start
 
@@ -71,7 +88,8 @@ pnpm install        # OpenZeppelin Contracts
 forge test
 ```
 
-See [`contracts/README.md`](contracts/README.md) for deploying to Nexus L1 testnet.
+See [`contracts/README.md`](contracts/README.md) for deploying to Nexus L1
+(mainnet or testnet).
 
 ### Frontend
 
