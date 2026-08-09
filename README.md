@@ -1,58 +1,97 @@
 <div align="center">
 
-# Project Name
+# NexEscrow
 
-**A concise, high-signal tagline describing what this does.**
+**Non-custodial, milestone-based escrow for on-chain agreements on Nexus L1.**
 
+[![CI](https://github.com/Rishidar-lab/nexescrow/actions/workflows/ci.yml/badge.svg)](https://github.com/Rishidar-lab/nexescrow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](#)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.26-363636?logo=solidity)](contracts/src/NexusEscrow.sol)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](frontend)
 
 </div>
 
 ---
 
-## 📌 Overview
+## Overview
 
-A 2-3 sentence description of the problem this solves and how it solves it. Keep it technical and precise. No marketing fluff.
+Two parties agree on a milestone-based deliverable. The buyer locks funds (native NXS
+or any ERC-20) into `NexusEscrow`; the seller gets paid out milestone by milestone as
+the buyer approves each one. Neither party ever custodies the other's funds, and
+neither can unilaterally seize them — if buyer and seller disagree on a milestone,
+a third-party arbiter chosen at agreement creation splits that milestone's payout.
 
-## ✨ Key Features
+## Key features
 
-- **Feature 1:** Detailed explanation of the technical implementation.
-- **Feature 2:** How it handles edge cases or specific security concerns.
-- **Feature 3:** Performance or integration benefits.
+- **Milestone-based release.** An agreement is a sequence of milestones, each released
+  in order as the buyer approves it — not one all-or-nothing payout.
+- **Arbitrated disputes, not unilateral timeouts.** Either party can dispute the current
+  milestone; the arbiter then splits it by basis points between buyer and seller. There
+  is deliberately no unilateral timeout-release — a ghosted counterparty is resolved by
+  the arbiter, not a clock, which keeps the state machine small and removes a class of
+  timeout-griefing attacks.
+- **Native NXS or any ERC-20**, via `SafeERC20`.
+- **Protocol fee**, in basis points, capped at 10% (`MAX_FEE_BPS`), snapshotted onto
+  each agreement at creation time so a later fee change never affects agreements
+  already in flight. Fee is only ever taken from the portion actually paid to the
+  seller — a buyer refund is never taxed.
 
-## 🏗️ Architecture / Security Note
+## Architecture / security notes
 
-Briefly describe the architecture or security considerations. For example, if this interacts with smart contracts, mention the audit status or known risks. If it's an API, mention authentication mechanisms.
+- **Contract:** `contracts/src/NexusEscrow.sol`. Single contract, agreements keyed by
+  an incrementing `uint256` id, `ReentrancyGuard` + checks-effects-interactions on every
+  fund-moving function, `Pausable` + `Ownable2Step` for admin controls. Not upgradeable
+  by design — no proxy, no admin fund access beyond the fee split.
+- **Test suite:** 57 Foundry tests across lifecycle, disputes, admin, and a dedicated
+  security suite — including a reentrancy PoC (a malicious buyer contract that tries to
+  reenter `approveMilestone` mid-payout, blocked by the shared `ReentrancyGuard` lock)
+  and fuzz invariants (milestone sums always reconstitute the total; dispute splits
+  always conserve buyer + seller + fee = milestone amount). See
+  [`contracts/test/`](contracts/test).
+- **Agreement discovery is log-based**, not an on-chain enumerable list — the frontend
+  finds "your agreements" by scanning `AgreementCreated` events and filtering
+  client-side. That's fine at testnet scale; a production deployment should back it
+  with an indexer/subgraph instead of a full log scan (see
+  [`frontend/src/hooks/useMyAgreements.ts`](frontend/src/hooks/useMyAgreements.ts)).
+- **Audit status:** unaudited. This is a from-scratch rebuild, not yet reviewed by a
+  third party — treat it as testnet/portfolio-grade until it has been.
 
-## 🚀 Quick Start
+## Quick start
 
 ### Prerequisites
-- Node.js >= 18
-- (Other dependencies)
 
-### Installation
+- [Foundry](https://book.getfoundry.sh/) (`forge`, `cast`, `anvil`)
+- Node.js ≥ 18, [pnpm](https://pnpm.io/)
 
-```bash
-git clone https://github.com/Rishidar-lab/project-name.git
-cd project-name
-npm install
-```
-
-### Usage
+### Contracts
 
 ```bash
-# Example command
-npm run start
+cd contracts
+pnpm install        # OpenZeppelin Contracts
+forge test
 ```
 
-## 🛡️ Contributing & Security
+See [`contracts/README.md`](contracts/README.md) for deploying to Nexus L1 testnet.
 
-Found a vulnerability? Please reach out via [Bugcrowd](https://bugcrowd.com) or email directly. For general contributions, open an issue first to discuss proposed changes.
+### Frontend
 
-## 📄 License
+```bash
+cd frontend
+pnpm install
+cp .env.example .env.local   # set the deployed contract address + RPC URL
+pnpm dev
+```
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+See [`frontend/README.md`](frontend/README.md) for the full env var list.
+
+## Contributing & security
+
+Found a vulnerability? Please don't open a public issue — reach out privately first.
+For general contributions, open an issue to discuss the change before sending a PR.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
-*Built by [@parzival](https://github.com/Rishidar-lab) - Security Researcher & Builder*
+*Built by [@parzival](https://github.com/Rishidar-lab) — security researcher & builder.*

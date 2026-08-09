@@ -1,0 +1,12 @@
+# Foundry
+cache/
+out/
+broadcast/*/**/dry-run/
+
+# Env
+.env
+.env.local
+
+# Node (OpenZeppelin installed via pnpm, not vendored)
+node_modules/
+

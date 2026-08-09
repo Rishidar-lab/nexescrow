@@ -1,0 +1,15 @@
+{
+  "name": "nexescrow-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Solidity contracts for NexEscrow — non-custodial escrow on Nexus L1",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vvv",
+    "coverage": "forge coverage",
+    "fmt": "forge fmt"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0"
+  }
+}
