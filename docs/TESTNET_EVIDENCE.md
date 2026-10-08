@@ -33,6 +33,14 @@ cmd: cast block-number --rpc-url https://rpc.bohr.life
 UTC=2026-10-08T17:53:45Z
 ```
 
+## 1b. Nexus RPC reachability (observed limitation)
+
+At 2026-10-08T17:57Z, both `testnet.rpc.nexus.xyz` and `mainnet.rpc.nexus.xyz` failed
+DNS resolution from the test environment (`getent hosts`: no address); `rpc.bohr.life`
+resolved and responded. Nexus testnet readiness is therefore **unverified here** — the
+Nexus deployment path uses the same guarded script but was not exercised against a
+live node. This should be re-checked before any Nexus deployment claim.
+
 ## 2. Local deployment on a simulated chain 968
 
 `anvil --chain-id 968`; deployer/first Anvil account; raw log
