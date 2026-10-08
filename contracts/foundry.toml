@@ -8,16 +8,41 @@ solc_version = "0.8.26"
 via_ir = true
 fs_permissions = [{ access = "read", path = "./" }]
 
+# Meaningful adversarial stress at the default profile: every fuzz test gets 1024
+# runs; every stateful invariant gets 128 runs x 64 depth (8192 handler calls).
+[profile.default.fuzz]
+runs = 1024
+
+[profile.default.invariant]
+runs = 128
+depth = 64
+fail_on_revert = false
+
+# CI runs a heavier campaign. Keep runtime in mind when raising these further.
+[profile.ci.fuzz]
+runs = 4096
+
+[profile.ci.invariant]
+runs = 256
+depth = 128
+fail_on_revert = false
+
 [fmt]
 line_length = 100
 tab_width = 4
 bracket_spacing = true
 
-# Confirmed against docs.nexus.xyz. Nexus explorers run Blockscout, not Etherscan —
-# verify with `--verifier blockscout --verifier-url https://<explorer>/api/` rather
-# than the [etherscan] table (that's Etherscan-API-specific).
+# Named RPC endpoints. Mainnet endpoints exist for completeness only: the deploy
+# script refuses mainnet chains unless ALLOW_MAINNET_DEPLOYMENT=true is set.
+#
+# Nexus explorers run Blockscout (not Etherscan) — verify with
+# `--verifier blockscout --verifier-url https://<explorer>/api/`.
+# BOT Chain explorers (scan.bohr.life / scan.botchain.ai) are used with the same
+# Blockscout-style API; confirm the verifier flavour before broadcasting.
 [rpc_endpoints]
-nexus_mainnet = "https://mainnet.rpc.nexus.xyz"
 nexus_testnet = "https://testnet.rpc.nexus.xyz"
+nexus_mainnet = "https://mainnet.rpc.nexus.xyz"
+bot_testnet = "https://rpc.bohr.life"
+bot_mainnet = "https://rpc.botchain.ai"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
