@@ -89,3 +89,22 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  tooling:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python syntax
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Shell syntax
+        run: bash -n scripts/deploy-bot-968.sh
+
+      - name: Evidence JSON is well-formed
+        run: jq -e . docs/evidence/bot-rpc-capability.json docs/evidence/bot-968/deployment.json docs/evidence/bot-968/events.json > /dev/null
