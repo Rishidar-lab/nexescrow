@@ -5,6 +5,11 @@ libs = ["lib"]
 optimizer = true
 optimizer_runs = 200
 solc_version = "0.8.26"
+# Explicit, not implicit: solc 0.8.26 defaults to the Cancun EVM target. Confirm
+# the target chain supports Cancun before deploying; if not, rebuild with
+# `FOUNDRY_EVM_VERSION=paris forge build` and re-verify. See
+# docs/BOTCHAIN_INTEGRATION.md §20.
+evm_version = "cancun"
 via_ir = true
 fs_permissions = [{ access = "read", path = "./" }]
 
