@@ -1,7 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
+import { usePublicClient } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAgreementEvents } from "@/lib/api";
+import { selectedChainId, txExplorerUrl } from "@/lib/chain";
+import { escrowAddress } from "@/lib/contract";
+import { createIndexer } from "@/lib/indexer";
 import { formatDate, shortenAddress } from "@/lib/format";
 
 const EVENT_COLORS: Record<string, string> = {
@@ -16,11 +20,17 @@ const EVENT_COLORS: Record<string, string> = {
 };
 
 export function ActivityTimeline({ agreementId }: { agreementId: bigint }) {
+  const publicClient = usePublicClient({ chainId: selectedChainId });
+  const index = useMemo(() => createIndexer(publicClient), [publicClient]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["activity", agreementId.toString()],
-    queryFn: () => fetchAgreementEvents(agreementId),
+    queryKey: ["activity", selectedChainId, escrowAddress, agreementId.toString()],
+    queryFn: () => index!.eventsForAgreement(agreementId),
+    enabled: !!index,
     staleTime: 15_000,
   });
+
+  if (!index) return null;
 
   if (isLoading) {
     return (
@@ -47,16 +57,19 @@ export function ActivityTimeline({ agreementId }: { agreementId: bigint }) {
                 {humanize(event.name)}
               </span>
               <a
-                href={explorerTxUrl(event.txHash)}
+                href={txExplorerUrl(selectedChainId, event.transactionHash)}
                 target="_blank"
                 rel="noreferrer"
                 className="font-mono text-xs text-white/35 hover:text-white/70"
               >
-                {shortenAddress(event.txHash)}
+                {shortenAddress(event.transactionHash)}
               </a>
             </div>
             <div className="mt-0.5 text-xs text-white/40">
-              {formatDate(Number(event.blockTimestamp))} · {eventTitles(event.name, event.args) ?? "—"}
+              {formatDate(Number(event.args.blockTimestamp ?? 0)) !== "—"
+                ? formatDate(Number(event.args.blockTimestamp))
+                : `block ${event.blockNumber.toString()}`}{" "}
+              · {eventTitles(event.name, event.args) ?? "—"}
             </div>
           </li>
         ))}
@@ -67,11 +80,6 @@ export function ActivityTimeline({ agreementId }: { agreementId: bigint }) {
 
 function humanize(name: string): string {
   return name.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
-
-function explorerTxUrl(txHash: string): string {
-  const base = process.env.NEXT_PUBLIC_NEXUS_EXPLORER_URL || "https://explorer.nexus.xyz";
-  return `${base}/tx/${txHash}`;
 }
 
 function eventTitles(name: string, args: Record<string, unknown>): string | null {

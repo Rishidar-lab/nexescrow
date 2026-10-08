@@ -1,22 +1,26 @@
 "use client";
 
 import { use, useState, type ReactNode } from "react";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount } from "wagmi";
 import type { Address } from "viem";
 import {
   escrowAbi,
   escrowAddress,
+  escrowConfigured,
   agreementStatusLabels,
   milestoneStatusLabels,
   AgreementStatus,
   MilestoneStatus,
   NATIVE_TOKEN,
 } from "@/lib/contract";
+import { addressExplorerUrl, selectedChain, selectedChainId } from "@/lib/chain";
 import { useAgreement, useAllowance } from "@/hooks/useAgreement";
+import { useEscrowWrite } from "@/hooks/useEscrowWrite";
 import { useTokenMeta } from "@/hooks/useTokenMeta";
 import { formatTokenAmount, formatDate, shortenAddress } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { CopyButton } from "@/components/CopyButton";
+import { TxStatus } from "@/components/TxStatus";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { erc20Abi } from "@/lib/erc20Abi";
 
@@ -56,18 +60,40 @@ const MILESTONE_ICON: Record<number, ReactNode> = {
 
 export default function AgreementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: idParam } = use(params);
-  const id = BigInt(idParam);
+  const idValid = /^\d+$/.test(idParam);
+  const id = idValid ? BigInt(idParam) : 0n;
 
   const { address } = useAccount();
   const { agreement, milestones, isLoading, refetch } = useAgreement(id);
   const tokenMeta = useTokenMeta(agreement?.token);
-  const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
+  const { state: txState, write, correctChain, switchToSelectedChain } = useEscrowWrite();
   const allowanceResult = useAllowance(agreement?.token ?? NATIVE_TOKEN, address);
 
-  const [pending, setPending] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [buyerPercent, setBuyerPercent] = useState("50");
+
+  const busy = ["awaiting-signature", "pending", "mined", "confirmed"].includes(txState.phase);
+
+  async function run(request: Parameters<typeof write>[0]) {
+    setActionError(null);
+    try {
+      await write(request, async () => {
+        await Promise.all([refetch(), allowanceResult.refetch()]);
+      });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Transaction failed.");
+    }
+  }
+
+  if (!idValid) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          Invalid agreement id.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading || !agreement) {
     return (
@@ -90,89 +116,64 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
   const progress = agreement.milestoneCount > 0 ? (currentIndex / agreement.milestoneCount) * 100 : 0;
   const releasedAmount =
     milestones?.reduce(
-      (sum, m) => (m.status === MilestoneStatus.Released ? sum + m.amount : sum),
+      (sum, m) =>
+        m.status === MilestoneStatus.Released || m.status === MilestoneStatus.Resolved
+          ? sum + m.amount
+          : sum,
+      0n,
+    ) ?? 0n;
+  const remainingAmount =
+    milestones?.reduce(
+      (sum, m) =>
+        m.status === MilestoneStatus.Pending || m.status === MilestoneStatus.Disputed
+          ? sum + m.amount
+          : sum,
       0n,
     ) ?? 0n;
 
-  async function run(label: string, fn: () => Promise<`0x${string}`>) {
-    setActionError(null);
-    setPending(label);
-    try {
-      const hash = await fn();
-      await publicClient?.waitForTransactionReceipt({ hash });
-      await Promise.all([refetch(), allowanceResult.refetch()]);
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Transaction failed.");
-    } finally {
-      setPending(null);
-    }
-  }
+  const writesBlocked = busy || !correctChain || !escrowConfigured;
 
   async function handleFund() {
     if (isNative) {
-      await run("fund", () =>
-        writeContractAsync({
-          address: escrowAddress,
-          abi: escrowAbi,
-          functionName: "fund",
-          args: [id],
-          value: agreement!.totalAmount,
-        }),
-      );
+      await run({
+        address: escrowAddress,
+        abi: escrowAbi,
+        functionName: "fund",
+        args: [id],
+        value: agreement!.totalAmount,
+      });
       return;
     }
 
     const allowance = allowanceResult.data ?? 0n;
     if (allowance < agreement!.totalAmount) {
-      await run("approve", () =>
-        writeContractAsync({
-          address: agreement!.token,
-          abi: erc20Abi,
-          functionName: "approve",
-          args: [escrowAddress, agreement!.totalAmount],
-        }),
-      );
+      await run({
+        address: agreement!.token,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [escrowAddress, agreement!.totalAmount],
+      });
       return;
     }
 
-    await run("fund", () =>
-      writeContractAsync({ address: escrowAddress, abi: escrowAbi, functionName: "fund", args: [id] }),
-    );
+    await run({ address: escrowAddress, abi: escrowAbi, functionName: "fund", args: [id] });
   }
 
   async function handleApprove() {
-    await run("approve-milestone", () =>
-      writeContractAsync({ address: escrowAddress, abi: escrowAbi, functionName: "approveMilestone", args: [id] }),
-    );
+    await run({ address: escrowAddress, abi: escrowAbi, functionName: "approveMilestone", args: [id] });
   }
 
   async function handleDispute() {
-    await run("dispute", () =>
-      writeContractAsync({ address: escrowAddress, abi: escrowAbi, functionName: "raiseDispute", args: [id] }),
-    );
+    await run({ address: escrowAddress, abi: escrowAbi, functionName: "raiseDispute", args: [id] });
   }
 
   async function handleResolve() {
     const bps = Math.round(Number(buyerPercent) * 100);
-    await run("resolve", () =>
-      writeContractAsync({
-        address: escrowAddress,
-        abi: escrowAbi,
-        functionName: "resolveDispute",
-        args: [id, bps],
-      }),
-    );
+    await run({ address: escrowAddress, abi: escrowAbi, functionName: "resolveDispute", args: [id, bps] });
   }
 
   async function handleCancel() {
-    await run("cancel", () =>
-      writeContractAsync({
-        address: escrowAddress,
-        abi: escrowAbi,
-        functionName: "cancelBeforeFunding",
-        args: [id],
-      }),
-    );
+    await run({ address: escrowAddress, abi: escrowAbi, functionName: "cancelBeforeFunding", args: [id] });
   }
 
   const needsApproval = !isNative && (allowanceResult.data ?? 0n) < agreement.totalAmount;
@@ -199,6 +200,29 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
             </>
           )}
         </p>
+      </div>
+
+      {!escrowConfigured && (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          No escrow contract is configured for {selectedChain.name} (chain {selectedChainId}); this
+          page is read-only.
+        </p>
+      )}
+
+      {escrowConfigured && !correctChain && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          <span>Wrong network — write transactions are blocked.</span>
+          <button type="button" onClick={() => void switchToSelectedChain()} className="btn-ghost px-3 py-1.5">
+            Switch to {selectedChain.name}
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Total" value={`${formatTokenAmount(agreement.totalAmount, tokenMeta.decimals)} ${tokenMeta.symbol}`} />
+        <Stat label="Released" value={`${formatTokenAmount(releasedAmount, tokenMeta.decimals)} ${tokenMeta.symbol}`} />
+        <Stat label="Still escrowed" value={`${formatTokenAmount(remainingAmount, tokenMeta.decimals)} ${tokenMeta.symbol}`} />
+        <Stat label="Protocol fee" value={`${(agreement.feeBps / 100).toFixed(2)}%`} />
       </div>
 
       <div className="card p-5">
@@ -269,11 +293,13 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
         </p>
       )}
 
+      <TxStatus state={txState} />
+
       <div className="card flex flex-wrap items-center gap-3 p-4">
         {isBuyer && agreement.status === AgreementStatus.AwaitingFunding && (
-          <button onClick={handleFund} disabled={pending !== null} className="btn-primary px-6">
+          <button onClick={handleFund} disabled={writesBlocked} className="btn-primary px-6">
             <FundIcon />
-            {pending === "fund" || pending === "approve"
+            {busy
               ? "Confirming…"
               : needsApproval
                 ? `Approve ${tokenMeta.symbol}`
@@ -282,7 +308,7 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
         )}
 
         {isParty && agreement.status === AgreementStatus.AwaitingFunding && (
-          <button onClick={handleCancel} disabled={pending !== null} className="btn-danger">
+          <button onClick={handleCancel} disabled={writesBlocked} className="btn-danger">
             Cancel
           </button>
         )}
@@ -290,19 +316,17 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
         {isBuyer &&
           agreement.status === AgreementStatus.Active &&
           currentMilestone?.status === MilestoneStatus.Pending && (
-            <button onClick={handleApprove} disabled={pending !== null} className="btn-primary px-6">
+            <button onClick={handleApprove} disabled={writesBlocked} className="btn-primary px-6">
               <CheckIcon />
-              {pending === "approve-milestone"
-                ? "Confirming…"
-                : `Approve milestone #${currentIndex + 1}`}
+              {busy ? "Confirming…" : `Approve milestone #${currentIndex + 1}`}
             </button>
           )}
 
         {isParty &&
           agreement.status === AgreementStatus.Active &&
           currentMilestone?.status === MilestoneStatus.Pending && (
-            <button onClick={handleDispute} disabled={pending !== null} className="btn-danger">
-              {pending === "dispute" ? "Confirming…" : "Raise dispute"}
+            <button onClick={handleDispute} disabled={writesBlocked} className="btn-danger">
+              {busy ? "Confirming…" : "Raise dispute"}
             </button>
           )}
 
@@ -323,11 +347,21 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
                 />
                 %
               </label>
-              <button onClick={handleResolve} disabled={pending !== null} className="btn-primary">
-                {pending === "resolve" ? "Confirming…" : "Resolve dispute"}
+              <button onClick={handleResolve} disabled={writesBlocked} className="btn-primary">
+                {busy ? "Confirming…" : "Resolve dispute"}
               </button>
             </div>
           )}
+
+        {agreement.status === AgreementStatus.Completed && (
+          <p className="text-sm text-emerald-300/80">
+            Agreement completed — all milestones settled. Escrow holds no further principal for it.
+          </p>
+        )}
+
+        {agreement.status === AgreementStatus.Cancelled && (
+          <p className="text-sm text-white/40">Agreement cancelled before funding — no funds moved.</p>
+        )}
 
         {!isParty && !isArbiter && agreement.status === AgreementStatus.Active && (
           <p className="text-sm text-white/40">You&apos;re not a party to this agreement.</p>
@@ -335,6 +369,15 @@ export default function AgreementDetailPage({ params }: { params: Promise<{ id: 
       </div>
 
       <ActivityTimeline agreementId={id} />
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="card px-4 py-3">
+      <div className="text-xs text-white/40">{label}</div>
+      <div className="mt-1 truncate text-sm font-semibold">{value}</div>
     </div>
   );
 }
@@ -347,7 +390,15 @@ function RoleCard({ label, address, you }: { label: string; address: Address; yo
         {you && <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-indigo-300">you</span>}
       </div>
       <div className="mt-1.5 flex items-center gap-1 font-mono text-xs text-white/80">
-        {shortenAddress(address, 6)}
+        <a
+          href={addressExplorerUrl(selectedChainId, address)}
+          target="_blank"
+          rel="noreferrer"
+          className="hover:text-white"
+          title="View on explorer"
+        >
+          {shortenAddress(address, 6)} ↗
+        </a>
         <CopyButton value={address} label={label} />
       </div>
     </div>

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { isAddress, parseEventLogs, type Address } from "viem";
-import { escrowAbi, escrowAddress, NATIVE_TOKEN } from "@/lib/contract";
+import { escrowAbi, escrowAddress, escrowConfigured, NATIVE_TOKEN } from "@/lib/contract";
+import { selectedChain, selectedChainId } from "@/lib/chain";
 import { useTokenMeta } from "@/hooks/useTokenMeta";
+import { useEscrowWrite } from "@/hooks/useEscrowWrite";
+import { TxStatus } from "@/components/TxStatus";
 import { formatTokenAmount, parseTokenAmount } from "@/lib/format";
 
 interface MilestoneInput {
@@ -21,8 +24,8 @@ function newMilestone(): MilestoneInput {
 export default function CreateAgreementPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: selectedChainId });
+  const { state: txState, write, correctChain, switchToSelectedChain } = useEscrowWrite();
 
   const [seller, setSeller] = useState("");
   const [arbiter, setArbiter] = useState("");
@@ -60,6 +63,12 @@ export default function CreateAgreementPage() {
 
   function validate(): string | null {
     if (!isConnected || !address) return "Connect a wallet first.";
+    if (!escrowConfigured) {
+      return `No escrow contract is configured for ${selectedChain.name} (chain ${selectedChainId}).`;
+    }
+    if (!correctChain) {
+      return `Wrong network: switch your wallet to ${selectedChain.name} (chain ${selectedChainId}) before creating an agreement.`;
+    }
     if (!isAddress(seller)) return "Enter a valid seller address.";
     if (!isAddress(arbiter)) return "Enter a valid arbiter address.";
     if (seller.toLowerCase() === address.toLowerCase()) return "Seller can't be you (the buyer).";
@@ -95,15 +104,19 @@ export default function CreateAgreementPage() {
     try {
       const fundingDeadline = deadline ? Math.floor(new Date(deadline).getTime() / 1000) : 0;
 
-      const hash = await writeContractAsync({
+      const hash = await write({
         address: escrowAddress,
         abi: escrowAbi,
         functionName: "createAgreement",
         args: [seller as Address, arbiter as Address, effectiveToken, milestoneValues, fundingDeadline],
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      const events = parseEventLogs({ abi: escrowAbi, eventName: "AgreementCreated", logs: receipt.logs });
+      const receipt = await publicClient.getTransactionReceipt({ hash });
+      const events = parseEventLogs({
+        abi: escrowAbi,
+        eventName: "AgreementCreated",
+        logs: receipt.logs,
+      });
       const id = events[0]?.args.id;
 
       if (id !== undefined) {
@@ -124,9 +137,25 @@ export default function CreateAgreementPage() {
         <h1 className="text-xl font-semibold">New escrow agreement</h1>
         <p className="mt-1 text-sm text-white/50">
           Define the payout plan, add a seller and a neutral arbiter. Funding happens in the next
-          step.
+          step. Creating an agreement moves no funds.
         </p>
       </div>
+
+      {!correctChain && isConnected && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <span>
+            Wrong network. Transactions are blocked until your wallet is on {selectedChain.name} (chain{" "}
+            {selectedChainId}).
+          </span>
+          <button
+            type="button"
+            onClick={() => void switchToSelectedChain()}
+            className="btn-ghost px-3 py-1.5"
+          >
+            Switch network
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="card space-y-5 p-6">
         <Field label="Seller address" hint="Receives milestone payouts as you approve them.">
@@ -157,7 +186,7 @@ export default function CreateAgreementPage() {
               onClick={() => setTokenType("native")}
               className={`chip ${tokenType === "native" ? "chip-active" : ""}`}
             >
-              Native NEX
+              Native {selectedChain.nativeCurrency.symbol}
             </button>
             <button
               type="button"
@@ -247,12 +276,22 @@ export default function CreateAgreementPage() {
           </p>
         )}
 
+        <TxStatus state={txState} />
+
         <button
           type="submit"
-          disabled={submitting || !isConnected}
+          disabled={submitting || !isConnected || !escrowConfigured || !correctChain}
           className="btn-primary w-full py-3"
         >
-          {submitting ? "Creating…" : isConnected ? "Create agreement" : "Connect a wallet first"}
+          {submitting
+            ? "Creating…"
+            : !isConnected
+              ? "Connect a wallet first"
+              : !escrowConfigured
+                ? "Contract not configured"
+                : !correctChain
+                  ? `Switch to ${selectedChain.name} to continue`
+                  : "Create agreement"}
         </button>
       </form>
     </div>

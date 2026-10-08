@@ -6,17 +6,21 @@ import { useMyAgreements } from "@/hooks/useMyAgreements";
 import { AgreementCard } from "@/components/AgreementCard";
 import { formatTokenAmount } from "@/lib/format";
 import { useTokenMeta } from "@/hooks/useTokenMeta";
+import { selectedChain, selectedChainId } from "@/lib/chain";
 
 export default function DashboardPage() {
   const { isConnected, address } = useAccount();
-  const { rows, isLoading, error } = useMyAgreements();
+  const { rows, isLoading, error, configured } = useMyAgreements();
   const walletTokenMeta = useTokenMeta(undefined);
 
   const involved = rows.length;
   const asBuyer = rows.filter((r) => r.role === "buyer").length;
   const asSeller = rows.filter((r) => r.role === "seller").length;
   const active = rows.filter((r) => r.agreement?.status === 1).length;
-  const escrowed = rows.reduce((sum, r) => sum + (r.agreement?.totalAmount ?? 0n), 0n);
+  const activeValue = rows.reduce(
+    (sum, r) => sum + (r.agreement?.status === 1 ? r.agreement.totalAmount : 0n),
+    0n,
+  );
 
   if (!isConnected || !address) {
     return (
@@ -26,8 +30,8 @@ export default function DashboardPage() {
         </div>
         <h1 className="text-xl font-semibold">Connect a wallet</h1>
         <p className="max-w-sm text-sm text-white/50">
-          Connect to Nexus L1 to see agreements where you&apos;re the buyer, seller, or arbiter — and
-          to fund, approve, and resolve them.
+          Connect to {selectedChain.name} to see agreements where you&apos;re the buyer, seller, or
+          arbiter — and to fund, approve, and resolve them.
         </p>
       </div>
     );
@@ -38,12 +42,21 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Your agreements</h1>
-          <p className="mt-0.5 text-sm text-white/50">Everything you&apos;re involved in, on Nexus L1.</p>
+          <p className="mt-0.5 text-sm text-white/50">
+            Everything you&apos;re involved in, on {selectedChain.name}.
+          </p>
         </div>
         <Link href="/create" className="btn-primary px-5 py-2.5">
           <PlusIcon /> New agreement
         </Link>
       </div>
+
+      {!configured && (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          No escrow contract is configured for {selectedChain.name} (chain {selectedChainId}) — the
+          dashboard cannot discover agreements. Set NEXT_PUBLIC_ESCROW_ADDRESS_{selectedChainId}.
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Involved" value={involved.toString()} />
@@ -53,9 +66,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="card flex items-center justify-between px-4 py-3 text-sm">
-        <span className="text-white/50">Total value locked in your agreements</span>
+        <span className="text-white/50">Total value in your active agreements</span>
         <span className="font-semibold">
-          {formatTokenAmount(escrowed, walletTokenMeta.decimals)} {walletTokenMeta.symbol}
+          {formatTokenAmount(activeValue, walletTokenMeta.decimals)} {walletTokenMeta.symbol}
         </span>
       </div>
 

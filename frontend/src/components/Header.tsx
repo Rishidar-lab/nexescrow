@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { selectedChain } from "@/lib/chain";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -24,7 +25,7 @@ export function Header() {
             <span className="text-base font-semibold tracking-tight">
               NexEscrow
               <span className="ml-2 hidden text-[10px] font-medium text-white/30 sm:inline">
-                Nexus L1
+                {selectedChain.name}
               </span>
             </span>
           </Link>
