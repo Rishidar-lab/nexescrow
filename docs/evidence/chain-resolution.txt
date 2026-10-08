@@ -1,0 +1,15 @@
+UTC=2026-10-08T17:54:20Z
+# chain resolution fail-closed checks (node --experimental-strip-types, lib/chain.ts)
+--- env: NEXT_PUBLIC_CHAIN_ID=3946
+{"selectedChainId":968,"warning":"Mainnet chain 3946 requested, but NEXT_PUBLIC_ALLOW_MAINNET is not \"true\". This build failed closed to BOT Bohr testnet (968).","allowMainnet":false,"offered":[3945,968]}
+--- env: NEXT_PUBLIC_CHAIN_ID=3946 NEXT_PUBLIC_ALLOW_MAINNET=true
+{"selectedChainId":3946,"warning":null,"allowMainnet":true,"offered":[3945,3946,968,677]}
+--- env: NEXT_PUBLIC_CHAIN_ID=3945
+{"selectedChainId":3945,"warning":null,"allowMainnet":false,"offered":[3945,968]}
+--- env: NEXT_PUBLIC_CHAIN_ID=1
+{"selectedChainId":968,"warning":"Unknown chain id 1; failed closed to BOT Bohr testnet (968).","allowMainnet":false,"offered":[3945,968]}
+--- env: NEXT_PUBLIC_CHAIN_ID=677 NEXT_PUBLIC_ALLOW_MAINNET=true
+{"selectedChainId":677,"warning":null,"allowMainnet":true,"offered":[3945,3946,968,677]}
+--- env: none
+{"selectedChainId":968,"warning":null,"allowMainnet":false,"offered":[3945,968]}
+UTC=2026-10-08T17:54:22Z

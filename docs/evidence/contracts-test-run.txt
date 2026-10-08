@@ -1,0 +1,214 @@
+UTC=2026-10-08T17:53:54Z
+$ forge test
+No files changed, compilation skipped
+
+Ran 33 tests for test/NexusEscrow.Lifecycle.t.sol:NexusEscrowLifecycleTest
+[PASS] test_ApproveMilestone_MultiMilestone_ReleasesInOrderAndCompletes() (gas: 363584)
+[PASS] test_ApproveMilestone_PaysSellerMinusFee_ERC20() (gas: 311860)
+[PASS] test_ApproveMilestone_PaysSellerMinusFee_Native() (gas: 264244)
+[PASS] test_ApproveMilestone_RevertWhen_AlreadyReleased() (gas: 266844)
+[PASS] test_ApproveMilestone_RevertWhen_NotActive() (gas: 190771)
+[PASS] test_ApproveMilestone_RevertWhen_NotBuyer() (gas: 201649)
+[PASS] test_CancelBeforeFunding_ByBuyer() (gas: 189487)
+[PASS] test_CancelBeforeFunding_BySeller() (gas: 189047)
+[PASS] test_CancelBeforeFunding_ExactlyAtDeadline_StrangerStillBlocked() (gas: 188118)
+[PASS] test_CancelBeforeFunding_RevertWhen_AlreadyFunded() (gas: 198284)
+[PASS] test_CancelBeforeFunding_RevertWhen_StrangerBeforeDeadline() (gas: 187039)
+[PASS] test_CancelBeforeFunding_StrangerAllowedAfterDeadline() (gas: 191691)
+[PASS] test_CreateAgreement_MaxMilestones_Allowed() (gas: 1374278)
+[PASS] test_CreateAgreement_RevertWhen_ArbiterIsBuyerOrSeller() (gas: 22670)
+[PASS] test_CreateAgreement_RevertWhen_DeadlineInPast() (gas: 19926)
+[PASS] test_CreateAgreement_RevertWhen_MilestoneSumOverflowsUint128() (gas: 20185)
+[PASS] test_CreateAgreement_RevertWhen_NoMilestones() (gas: 19447)
+[PASS] test_CreateAgreement_RevertWhen_SellerIsSelf() (gas: 17259)
+[PASS] test_CreateAgreement_RevertWhen_TooManyMilestones() (gas: 30918)
+[PASS] test_CreateAgreement_RevertWhen_ZeroAmountMilestone() (gas: 19545)
+[PASS] test_CreateAgreement_StoresFields() (gas: 236416)
+[PASS] test_Fund_ERC20_RevertWhen_NativeValueSent() (gas: 248597)
+[PASS] test_Fund_ERC20_TransfersTokens() (gas: 255619)
+[PASS] test_Fund_ExactlyAtDeadline_IsAllowed() (gas: 199240)
+[PASS] test_Fund_Native_ActivatesAgreement() (gas: 199155)
+[PASS] test_Fund_Native_RevertWhen_WrongValue() (gas: 197933)
+[PASS] test_Fund_RevertWhen_AlreadyActive() (gas: 208867)
+[PASS] test_Fund_RevertWhen_DeadlinePassed() (gas: 197602)
+[PASS] test_Fund_RevertWhen_NotBuyer() (gas: 199299)
+[PASS] test_GetMilestone_RevertWhen_IndexOutOfBounds() (gas: 184552)
+[PASS] test_GetMilestones_ReturnsFullArray() (gas: 237507)
+[PASS] test_MilestoneOrder_CursorOnly_NoBypass() (gas: 338967)
+[PASS] test_UnknownAgreement_NoValuePaths() (gas: 74087)
+Suite result: ok. 33 passed; 0 failed; 0 skipped; finished in 4.25ms (2.41ms CPU time)
+
+Ran 20 tests for test/NexusEscrow.Authorization.t.sol:NexusEscrowAuthorizationTest
+[PASS] test_Create_RevertWhen_ArbiterEqualsBuyer() (gas: 17281)
+[PASS] test_Create_RevertWhen_ArbiterEqualsSeller() (gas: 17073)
+[PASS] test_Create_RevertWhen_ArbiterZero() (gas: 16725)
+[PASS] test_Create_RevertWhen_BuyerEqualsSeller() (gas: 17376)
+[PASS] test_Create_RevertWhen_SellerZero() (gas: 17018)
+[PASS] test_FeeRecipient_CanOnlyWithdrawAccruedFees() (gas: 335101)
+[PASS] test_Impersonation_ApproveBySellerArbiterStrangerOwner() (gas: 224109)
+[PASS] test_Impersonation_FundBySellerAndStranger() (gas: 250262)
+[PASS] test_Impersonation_RaiseDisputeByArbiterStrangerOwner() (gas: 209032)
+[PASS] test_Impersonation_ResolveByBuyerSellerStrangerOwner() (gas: 227891)
+[PASS] test_Ownable2Step_OnlyPendingOwnerCanAccept() (gas: 27854)
+[PASS] test_Ownable2Step_PendingOwnerCannotActBeforeAccept() (gas: 27540)
+[PASS] test_Ownable_TransferOwnershipCannotBeHijacked() (gas: 15841)
+[PASS] test_Owner_CannotTouchEscrowedPrincipal() (gas: 217054)
+[PASS] test_PauseDuringActive_UnpauseRestoresProgression() (gas: 356042)
+[PASS] test_Pause_BlocksAllAgreementPaths() (gas: 234824)
+[PASS] test_Pause_DoesNotBlockFeeWithdrawalOrAdminConfig() (gas: 303473)
+[PASS] test_RenounceOwnership_DisablesAdminButNotEscrow() (gas: 272586)
+[PASS] test_Unauthorized_CancelByStrangerBeforeDeadline() (gas: 186927)
+[PASS] test_Unauthorized_WithdrawFeesByEveryoneElse() (gas: 293456)
+Suite result: ok. 20 passed; 0 failed; 0 skipped; finished in 10.97ms (1.49ms CPU time)
+
+Ran 19 tests for test/NexusEscrow.Disputes.t.sol:NexusEscrowDisputesTest
+[PASS] test_CancelVsDispute_Race_FundedAgreementDisputeWins() (gas: 205131)
+[PASS] test_CancelVsDispute_Race_UnfundedCancelWins() (gas: 188510)
+[PASS] test_PartialCompletion_DisputeFlow_ConservesTotal() (gas: 380795)
+[PASS] test_RaiseDispute_ByBuyer_MarksMilestoneDisputed() (gas: 202725)
+[PASS] test_RaiseDispute_BySeller_MarksMilestoneDisputed() (gas: 202965)
+[PASS] test_RaiseDispute_RevertWhen_AgreementCompleted() (gas: 265675)
+[PASS] test_RaiseDispute_RevertWhen_AlreadyDisputed() (gas: 203745)
+[PASS] test_RaiseDispute_RevertWhen_NotActive() (gas: 184654)
+[PASS] test_RaiseDispute_RevertWhen_NotParty() (gas: 200796)
+[PASS] test_ResolveDispute_EvenSplit() (gas: 282437)
+[PASS] test_ResolveDispute_FullBuyerRefund_NoFeeCharged() (gas: 219620)
+[PASS] test_ResolveDispute_FullSellerAward() (gas: 268281)
+[PASS] test_ResolveDispute_OnMiddleMilestone_AdvancesCorrectly() (gas: 356228)
+[PASS] test_ResolveDispute_RevertWhen_AlreadyResolved() (gas: 278938)
+[PASS] test_ResolveDispute_RevertWhen_BpsOutOfRange() (gas: 206389)
+[PASS] test_ResolveDispute_RevertWhen_MilestoneNotDisputed() (gas: 272856)
+[PASS] test_ResolveDispute_RevertWhen_NotArbiter() (gas: 206450)
+[PASS] test_ResolveDispute_RevertWhen_NotDisputed() (gas: 202324)
+[PASS] test_ResolveDispute_RoundingBoundary_9999Bps() (gas: 280496)
+Suite result: ok. 19 passed; 0 failed; 0 skipped; finished in 10.34ms (1.40ms CPU time)
+
+Ran 21 tests for test/NexusEscrow.Admin.t.sol:NexusEscrowAdminTest
+[PASS] test_Constructor_RevertWhen_ZeroFeeRecipient() (gas: 107907)
+[PASS] test_OwnershipTransfer_TwoStep() (gas: 28224)
+[PASS] test_Pause_BlocksCreateFundApprove() (gas: 214363)
+[PASS] test_Pause_OnlyOwner() (gas: 13965)
+[PASS] test_SetFeeRecipient_AccruedFeesFollowCurrentRecipient() (gas: 294793)
+[PASS] test_SetFeeRecipient_OnlyOwner() (gas: 22471)
+[PASS] test_SetFeeRecipient_RevertWhen_Zero() (gas: 13788)
+[PASS] test_SetProtocolFee_CapBoundary_ExactCapAllowed() (gas: 22024)
+[PASS] test_SetProtocolFee_DuringActiveAgreement_DoesNotAffectInFlight() (gas: 483881)
+[PASS] test_SetProtocolFee_NoBypassAboveCap() (gas: 21750)
+[PASS] test_SetProtocolFee_OnlyOwner() (gas: 20766)
+[PASS] test_SetProtocolFee_RevertWhen_NotOwner() (gas: 14725)
+[PASS] test_SetProtocolFee_RevertWhen_TooHigh() (gas: 15036)
+[PASS] test_SetProtocolFee_SnapshottedPerAgreement() (gas: 343758)
+[PASS] test_Unpause_RestoresOperation() (gas: 192079)
+[PASS] test_WithdrawFees_ERC20() (gas: 303963)
+[PASS] test_WithdrawFees_Native() (gas: 286096)
+[PASS] test_WithdrawFees_RevertWhen_NotFeeRecipient() (gas: 19025)
+[PASS] test_WithdrawFees_RevertWhen_Nothing() (gas: 21214)
+[PASS] test_WithdrawFees_TwiceRevertsSecondTime() (gas: 286441)
+[PASS] test_WithdrawFees_WorksWhilePaused() (gas: 295070)
+Suite result: ok. 21 passed; 0 failed; 0 skipped; finished in 17.43ms (1.91ms CPU time)
+
+Ran 12 tests for test/NexusEscrow.TokenEdge.t.sol:NexusEscrowTokenEdgeTest
+[PASS] testFuzz_Rounding_NoWeiCreatedOrDestroyed(uint128,uint16) (runs: 1024, μ: 306696, ~: 313776)
+[PASS] test_ApproveMilestone_ReentrantToken_ReentryBlocked() (gas: 973477)
+[PASS] test_ApproveMilestone_RevertsWhen_SellerRejectsNative() (gas: 290474)
+[PASS] test_ArbitraryDecimals_Conservation() (gas: 2890606)
+[PASS] test_Fund_NoReturnToken_SucceedsAndPaysOut() (gas: 542693)
+[PASS] test_Fund_ReentrantToken_ReentryBlocked() (gas: 1056507)
+[PASS] test_Fund_RevertWhen_FeeOnTransferToken() (gas: 772818)
+[PASS] test_Fund_RevertWhen_TokenIsNotAContract() (gas: 214827)
+[PASS] test_Fund_RevertWhen_TokenReturnsFalse() (gas: 445480)
+[PASS] test_ResolveDispute_FullRefund_BypassesRejectingSeller() (gas: 295254)
+[PASS] test_ResolveDispute_RevertsWhen_RejectingSellerIsDueFunds() (gas: 325084)
+[PASS] test_Rounding_DustIsConserved() (gas: 340246)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 222.81ms (223.61ms CPU time)
+
+Ran 4 tests for test/NexusEscrow.Security.t.sol:NexusEscrowSecurityTest
+[PASS] testFuzz_DisputeSplitConservesAmount(uint128,uint16) (runs: 1024, μ: 293266, ~: 302492)
+[PASS] testFuzz_FeeNeverExceedsAmount(uint128,uint16) (runs: 1024, μ: 270661, ~: 275029)
+[PASS] testFuzz_MilestoneSumMatchesTotal(uint8,uint128) (runs: 1024, μ: 557817, ~: 336968)
+[PASS] test_Reentrancy_BlockedAcrossFunctions() (gas: 540702)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 242.39ms (604.36ms CPU time)
+
+Ran 3 tests for test/NexusEscrow.Invariants.t.sol:NexusEscrowInvariantsTest
+[PASS] invariant_IdMonotonic() (runs: 128, calls: 8192, reverts: 0)
+
+╭---------------+------------------+-------+---------+----------╮
+| Contract      | Selector         | Calls | Reverts | Discards |
++===============================================================+
+| EscrowHandler | approveMilestone | 816   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | cancel           | 836   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | createAgreement  | 842   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | fund             | 822   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | raiseDispute     | 802   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | resolveDispute   | 794   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | setProtocolFee   | 824   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | togglePause      | 823   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | warp             | 817   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | withdrawFees     | 816   | 0       | 0        |
+╰---------------+------------------+-------+---------+----------╯
+
+[PASS] invariant_Solvency() (runs: 128, calls: 8192, reverts: 0)
+
+╭---------------+------------------+-------+---------+----------╮
+| Contract      | Selector         | Calls | Reverts | Discards |
++===============================================================+
+| EscrowHandler | approveMilestone | 814   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | cancel           | 821   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | createAgreement  | 798   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | fund             | 821   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | raiseDispute     | 858   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | resolveDispute   | 828   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | setProtocolFee   | 827   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | togglePause      | 802   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | warp             | 789   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | withdrawFees     | 834   | 0       | 0        |
+╰---------------+------------------+-------+---------+----------╯
+
+[PASS] invariant_StateConsistency() (runs: 128, calls: 8192, reverts: 0)
+
+╭---------------+------------------+-------+---------+----------╮
+| Contract      | Selector         | Calls | Reverts | Discards |
++===============================================================+
+| EscrowHandler | approveMilestone | 841   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | cancel           | 819   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | createAgreement  | 772   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | fund             | 808   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | raiseDispute     | 845   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | resolveDispute   | 844   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | setProtocolFee   | 805   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | togglePause      | 847   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | warp             | 809   | 0       | 0        |
+|---------------+------------------+-------+---------+----------|
+| EscrowHandler | withdrawFees     | 802   | 0       | 0        |
+╰---------------+------------------+-------+---------+----------╯
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.71s (3.66s CPU time)
+
+Ran 7 test suites in 1.71s (2.22s CPU time): 112 tests passed, 0 failed, 0 skipped (112 total tests)
+UTC=2026-10-08T17:53:56Z
