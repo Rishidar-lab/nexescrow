@@ -1,0 +1,58 @@
+UTC=2026-10-08T21:07:13Z
+# scan.bohr.life verification support probe (read-only)
+
+## 1. Known-verified contract (EscrowAgent) via Blockscout v2
+HTTP=200 time=0.847460s
+{
+  "is_verified": true,
+  "language": "solidity",
+  "compiler_version": "v0.8.24+commit.e11b9ed9",
+  "optimization_enabled": true,
+  "evm_version": "paris",
+  "verified_at": "2026-10-07T23:49:35.422409Z"
+}
+
+## 2. Etherscan-compatible getsourcecode (known-verified)
+HTTP=200
+{
+  "status": "1",
+  "ContractName": "EscrowAgent",
+  "CompilerVersion": "v0.8.24+commit.e11b9ed9",
+  "OptimizationUsed": "true",
+  "EVMVersion": "paris",
+  "SourcePresent": true
+}
+
+## 3. Verification config endpoint
+HTTP=200
+{
+  "is_rust_verifier_microservice_enabled": true,
+  "solc_versions_total": 1657,
+  "solc_0_8_26_present": true,
+  "first_three": [
+    "v0.8.36+commit.8a079791",
+    "v0.8.35+commit.47b9dedd",
+    "v0.8.35-pre.1+commit.a99b6d8c"
+  ]
+}
+
+## 4. Our validated contract AFTER verification
+HTTP=200
+{
+  "is_verified": true,
+  "language": "solidity",
+  "compiler_version": "v0.8.26+commit.8a97fa7a",
+  "optimization_enabled": true,
+  "evm_version": "cancun",
+  "verified_at": "2026-10-08T21:05:40.963217Z",
+  "name": "NexusEscrow"
+}
+
+## 5. Verification method used
+forge verify-contract <address> src/NexusEscrow.sol:NexusEscrow --chain-id 968 \
+  --verifier blockscout --verifier-url https://scan.bohr.life/api/ \
+  --constructor-args <abi-encoded owner,feeRecipient> --watch
+GUID: 6448668ae9cbbc41617c2bd5e4f29279320a27006ac8059e
+URL: https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700
+
+UTC=2026-10-08T21:07:17Z

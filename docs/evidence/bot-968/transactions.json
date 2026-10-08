@@ -1,0 +1,71 @@
+{
+  "chainId": 968,
+  "transactions": [
+    {
+      "step": "createAgreement(A)",
+      "transactionHash": "0xf9f4b64cfd8c7e4f0270889800c15efb9ee6fa66e2622fff495ddb4053d78608",
+      "blockNumber": 26178658,
+      "gasUsed": 213605,
+      "status": 1,
+      "agreementId": 0
+    },
+    {
+      "step": "fund(A)",
+      "transactionHash": "0xe52792a7054cbfc6b3f74e982e340865109f7417054427e42ca7ba4bf7760a1d",
+      "blockNumber": 26178662,
+      "gasUsed": 37263,
+      "status": 1,
+      "agreementId": 0,
+      "valueWei": "100000000000000000"
+    },
+    {
+      "step": "approveMilestone(A,0)",
+      "transactionHash": "0x42bcb8608046d459afcdafc6e2909e7e478d3d0db1c07f97781fbfac43ef746e",
+      "blockNumber": 26178664,
+      "gasUsed": 80047,
+      "status": 1,
+      "agreementId": 0
+    },
+    {
+      "step": "approveMilestone(A,1)",
+      "transactionHash": "0xba6e78551f8d0a27529b87f62de6b440f9d442f940f519d92ea110fc137c39b1",
+      "blockNumber": 26178666,
+      "gasUsed": 64242,
+      "status": 1,
+      "agreementId": 0
+    },
+    {
+      "step": "createAgreement(B)",
+      "transactionHash": "0x1b49e4e23cd81cc8e970468a9934a46fdb67072f89d834a6c9935f0e4c36d560",
+      "blockNumber": 26178669,
+      "gasUsed": 172303,
+      "status": 1,
+      "agreementId": 1
+    },
+    {
+      "step": "fund(B)",
+      "transactionHash": "0xb8115ec9c424788564b2259ccfe91c0c1a5d92db9911fda86c49d681ba2774fb",
+      "blockNumber": 26178671,
+      "gasUsed": 37275,
+      "status": 1,
+      "agreementId": 1,
+      "valueWei": "100000000000000000"
+    },
+    {
+      "step": "raiseDispute(B,seller)",
+      "transactionHash": "0x37275e2a1fa60c2021159b3d7294e961024c2236e080eb889bcd82e1334009bd",
+      "blockNumber": 26178673,
+      "gasUsed": 39707,
+      "status": 1,
+      "agreementId": 1
+    },
+    {
+      "step": "resolveDispute(B,6000)",
+      "transactionHash": "0x3a53ede3d28fc1a3700d3a7ee2a87df0c465acf832a542dbe5e325bdf3aa2221",
+      "blockNumber": 26178675,
+      "gasUsed": 76801,
+      "status": 1,
+      "agreementId": 1
+    }
+  ]
+}

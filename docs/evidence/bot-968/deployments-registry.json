@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-10-08T21:06:30Z",
+  "chainId": 968,
+  "network": "BOT Chain Bohr Testnet",
+  "auditStatus": "UNAUDITED",
+  "deployments": [
+    {
+      "address": "0xbb32b12be8eaa6d159308386563b6490bb4a5db0",
+      "transactionHash": "0x0c031e31afff87e8ee23bad58fb63606de9e144b2b23aa5c6b08159c48cca50e",
+      "blockNumber": 26178404,
+      "bytecodeHash": "0x7fba19dd52ec2caff42086cc4af9f342caed5564fc1240557e779e1353ea59a7",
+      "owner": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "feeRecipient": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "purpose": "Task 3 validation of scripts/deploy-bot-968.sh (guarded wrapper)",
+      "status": "SUPERSEDED TEST ARTIFACT - owner is the well-known public Anvil account 0 key (funded on Bohr by third parties); anyone can control it. Do not use or rely on this instance.",
+      "explorer": "https://scan.bohr.life/address/0xbb32b12be8eaa6d159308386563b6490bb4a5db0",
+      "verified": false
+    },
+    {
+      "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+      "transactionHash": "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61",
+      "blockNumber": 26178651,
+      "bytecodeHash": "0x7fba19dd52ec2caff42086cc4af9f342caed5564fc1240557e779e1353ea59a7",
+      "owner": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+      "feeRecipient": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+      "purpose": "Live E2E validation (Task 4): deploy, two agreements, release, dispute, arbitration resolution",
+      "status": "VALIDATED TESTNET INSTANCE - throwaway keys generated for the run were intentionally discarded, so admin functions are inert. Unauthored/unused; unaudited code.",
+      "explorer": "https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+      "verified": true,
+      "verifiedAt": "2026-10-08T21:05:40Z",
+      "verificationGuid": "6448668ae9cbbc41617c2bd5e4f29279320a27006ac8059e",
+      "validationReport": "lifecycle-report.md",
+      "validationChecks": "23/23 passed"
+    }
+  ]
+}
