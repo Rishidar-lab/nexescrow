@@ -164,7 +164,28 @@ should be confirmed with BOT Chain engineers — tracked in
 - **No client trust**: the UI must remain functional read-only against RPC if the
   indexer is down (the default adapter is the log scan).
 
-## 6. What this sprint deliberately did not build
+## 6. Measured BOT RPC capability (2026-10-08)
+
+Empirical validation (raw data: `docs/evidence/bot-rpc-capability.json`; write-up:
+`docs/evidence/bot-rpc-capability.md`) found:
+
+- `eth_getLogs` is **enabled and functional** on both `rpc.bohr.life` (968) and
+  `rpc.botchain.ai` (677), contrary to the published statement that it is disabled.
+- No hard server-side range cap: empty-filter scans of ~full history succeeded
+  (~0.6 s mainnet, ~3 s Bohr). Reliability is governed by result volume: mainnet
+  Wrapped-BOT logs grew to 12,365 results over a 64,000-block range (~4 s).
+- Intermittent nginx 503s were observed once on Bohr; retry-with-backoff is required.
+
+**Indexing decision (Task 2 classification): B - bounded-block-window polling**, with
+A technically viable today. No redesign is warranted: the existing log-scan adapter
+already implements bounded windows, dedupe by the four-part event identity, a
+confirmed-block checkpoint and rescan-based reorg handling. The measured evidence
+supports keeping it; the HTTP adapter remains the opt-in fallback if the method is
+ever disabled. The default 2,000-block chunk is conservative and sits far below any
+measured acceptance limit, while keeping per-query payload small on a busy mainnet
+(≈262 logs for a busy token at 2,000 blocks, under 1 s).
+
+## 7. What this sprint deliberately did not build
 
 A hosted indexer, a database, a queue, or a reorg daemon. The interface boundary plus a
 correct bounded client scan is sufficient for the current testnet stage; building the

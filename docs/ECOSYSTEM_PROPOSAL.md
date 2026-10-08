@@ -64,14 +64,18 @@ does not change to accommodate them.
 
 ## 7. Success criteria for this integration phase
 
-- A public BOT Bohr deployment with verified source and a documented lifecycle smoke
-  test (not yet achieved — credentials/faucet pending).
-- Indexer (or bounded log-scan) discovery working against the public deployment.
-- No high/medium findings from an independent review before any mainnet discussion.
-- Every claim in public materials matches on-chain reality; labels say `TESTNET /
-  UNAUDITED` until they no longer apply.
+- [x] A public BOT Bohr deployment with verified source and a documented lifecycle
+  smoke test. (Achieved 2026-10-08: `0x6448…2700`, source verified on scan.bohr.life,
+  23/23 lifecycle checks passed.)
+- [ ] Indexer (or bounded log-scan) discovery working against the public deployment.
+  (Bounded log-scan works; no hosted indexer.)
+- [ ] No high/medium findings from an independent review before any mainnet discussion.
+- [x] Every claim in public materials matches on-chain reality; labels say `TESTNET /
+  UNAUDITED`.
 
 ## 8. Status statement
 
-As of 2026-10-08: unaudited, no public deployment, no users, no TVL, no audit, no
-partnerships. This proposal asks only for evaluation and testnet-stage support.
+As of 2026-10-08: unaudited; one live, source-verified BOT Bohr testnet instance owned
+by discarded throwaway keys (a validation artifact, not a service); no users, no TVL,
+no audit, no partnerships, no mainnet deployment. This proposal asks only for
+evaluation and testnet-stage support.

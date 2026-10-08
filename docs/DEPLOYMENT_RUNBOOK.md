@@ -48,19 +48,32 @@ where avoidable; prefer `source .env` with `forge` reading the env var.
 
 ## 3. BOT Chain Bohr testnet (968) — intended first deployment
 
+Preferred: the guarded wrapper (chain-968-only, balance check, predicted address,
+manifest, never prints the key):
+
 ```shell
-source .env
-forge script script/DeployNexusEscrow.s.sol:DeployNexusEscrow \
-  --rpc-url bot_testnet --broadcast \
-  --verify --verifier blockscout --verifier-url https://scan.bohr.life/api/ -vvvv
+export PRIVATE_KEY=...                    # burner testnet key
+export CONFIRM_BOT_968_DEPLOY=BOT-968     # explicit intent
+scripts/deploy-bot-968.sh                 # writes docs/evidence/bot-968/deployment.json
 ```
 
-Record from the output / broadcast artifact (`broadcast/DeployNexusEscrow.s.sol/968/`):
+It runs a dry run (gas estimate + balance sufficiency), broadcasts
+`script/DeployNexusEscrowBOT.s.sol` (which itself reverts on any chain other than 968),
+then records tx hash, address, block number, gas used and the runtime bytecode hash in
+the manifest. Verification:
 
-- contract address
-- deployment transaction hash and block number
-- owner and fee recipient actually used
-- compiler version and settings (`solc 0.8.26`, optimizer 200, via_ir, evm cancun)
+```shell
+forge verify-contract <address> src/NexusEscrow.sol:NexusEscrow \
+  --chain-id 968 --verifier blockscout --verifier-url https://scan.bohr.life/api/ \
+  --constructor-args $(cast abi-encode "constructor(address,address)" <owner> <feeRecipient>) --watch
+```
+
+`scan.bohr.life` is Blockscout with the rust verifier microservice; no API key is
+required. The validated testnet instance is verified (solc 0.8.26, evm cancun).
+
+For a quick lifecycle validation on 968, run `scripts/validate-bot-968.py` with
+`PRIVATE_KEY`/`SELLER_KEY`/`ARBITER_KEY`; it refuses any other chain and writes evidence
+under `docs/evidence/bot-968/`.
 
 ## 4. Nexus testnet (3945) — alternative
 

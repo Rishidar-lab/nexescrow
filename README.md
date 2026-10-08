@@ -81,6 +81,9 @@ assumptions. A single frontend can target Nexus or BOT Chain, testnets by defaul
 | **BOT Chain Bohr (testnet)** | `968` | `https://rpc.bohr.life` | `https://scan.bohr.life` | BOT |
 | BOT Chain Mainnet | `677` | `https://rpc.botchain.ai` | `https://scan.botchain.ai` | BOT |
 
+BOT Bohr has a live, source-verified **unaudited testnet instance** at
+[`0x6448…2700`](https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700)
+(deployed and lifecycle-validated 2026-10-08; owned by discarded throwaway keys).
 Mainnets are configured but **opt-in only**: the deploy script refuses them unless
 `ALLOW_MAINNET_DEPLOYMENT=true`, and the frontend ignores mainnet selection unless
 `NEXT_PUBLIC_ALLOW_MAINNET=true`. This repository has never been deployed to a mainnet.

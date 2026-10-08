@@ -3,22 +3,43 @@
 > Date of record: 2026-10-08 (UTC). All raw outputs referenced here are committed under
 > `docs/evidence/`.
 
+## 0a. Live BOT Bohr run (2026-10-08) — added after the local simulation
+
+The guarded wrapper and the E2E harness were subsequently run against **live BOT Chain
+Bohr (968)** with throwaway testnet keys:
+
+- RPC capability matrix: `docs/evidence/bot-rpc-capability.json` + `.md`
+  (`eth_getLogs` works on both official endpoints; no hard range cap).
+- Deployment + lifecycle: `docs/evidence/bot-968/` — deployment manifest, transaction
+  list, balance snapshots, raw events, direct-state reads and a lifecycle report with
+  **23/23 checks passed** (release, dispute, arbitration, event-vs-direct reconciliation,
+  conservation).
+- Contract: `0x6448668ae9cbbc41617c2bd5e4f29279320a2700`, verified on
+  https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700
+- A second, earlier wrapper-validation deployment (`0xbb32...`, owner = the well-known
+  public Anvil key) is marked superseded in
+  `docs/evidence/bot-968/deployments-registry.json`.
+
 ## 0. Honest summary
 
 | Claim | Status |
 |---|---|
 | BOT Chain Bohr (968) RPC reachable, reports chain id 968 | **Verified** (read-only) |
-| NexusEscrow deploys and runs end-to-end on a chain-968 node | **Verified locally** (Anvil `--chain-id 968`) |
-| Deployed to public BOT Chain Bohr testnet | **NOT DONE** — no operator deployer key or faucet funds were configured in this environment; credentials must be supplied intentionally (see runbook) |
+| NexusEscrow deploys and runs end-to-end on a chain-968 node | **Verified** (local Anvil and **live BOT Bohr**) |
+| Deployed to public BOT Chain Bohr testnet | **DONE** (2026-10-08, unaudited testnet instance; see §0a) |
+| Live lifecycle + event/state reconciliation + conservation | **23/23 checks passed** (`docs/evidence/bot-968/lifecycle-report.md`) |
+| Source verified on scan.bohr.life | **DONE** (`is_verified: true`, solc 0.8.26, evm cancun) |
+| `eth_getLogs` capability on 968 and 677 | **Verified enabled**; no hard range cap (`docs/evidence/bot-rpc-capability.md`) |
 | Deployed to BOT mainnet 677 | **NOT DONE, and explicitly out of scope** |
 | Mainnet deployment blocked by default | **Verified** (script reverts without the opt-in flag) |
 | Contract tests / invariants | **Verified** (112 tests, 0 failures) |
 | Frontend lint / typecheck / build | **Verified** |
 | Independent security audit | **NOT DONE — none claimed** |
 
-A local simulated chain-968 run is **not** a public testnet deployment. It proves the
-deployment script, constructor, and lifecycle work on a node configured as 968; it does
-not prove BOT Bohr-specific behaviour (finality, RPC limits, explorer verification).
+The local simulated chain-968 run proves the deployment script, constructor, and
+lifecycle work on a node configured as 968. The live BOT Bohr run additionally proves
+Bohr-specific behaviour (real blocks, real gas, explorer verification). Neither is an
+audit, and no production/mainnet claim is made.
 
 ## 1. BOT Chain Bohr read-only verification
 
@@ -166,8 +187,10 @@ forge script script/DeployNexusEscrow.s.sol:DeployNexusEscrow \
 
 ## 10. What this evidence does not establish
 
-- No public testnet or mainnet deployment claim.
+- No mainnet deployment claim; mainnet remains untested and out of scope.
 - No audit, review, or endorsement by BOT Chain or anyone else.
-- No real-user, TVL, or production-usage claims.
-- No guarantee of BOT Bohr RPC behaviour under load, finality depth, or explorer
-  verification (tracked as open questions in `docs/BOTCHAIN_INTEGRATION.md` §20).
+- No real-user, TVL, or production-usage claims; the live instance is a throwaway
+  validation deployment owned by discarded keys, not a service.
+- No guarantee of BOT Bohr RPC behaviour under load (transient 503s were observed),
+  finality depth, or long-term explorer availability (tracked as open questions in
+  `docs/BOTCHAIN_INTEGRATION.md` §20).

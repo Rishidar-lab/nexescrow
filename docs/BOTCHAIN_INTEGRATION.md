@@ -172,6 +172,11 @@ Full matrix: `docs/TOKEN_AND_FUNDS_FLOW.md` §6.
   intentional, 1 unindexed event-address info). No high/medium findings.
 - Local end-to-end deployment and lifecycle on a simulated chain 968 with raw logs:
   `docs/TESTNET_EVIDENCE.md`.
+- **Live BOT Bohr validation (2026-10-08):** deployed via the guarded wrapper, ran two
+  agreements (one fully approved, one disputed and arbitrated 60/40), retrieved the
+  events, reconciled event-derived state with direct contract reads, and verified
+  conservation. **23/23 checks passed**; source verified on scan.bohr.life.
+  Evidence: `docs/evidence/bot-968/` (see lifecycle-report.md).
 - **No independent audit has been performed; none is claimed.**
 
 ## 15. BOT Chain 968 configuration (BOT Bohr testnet)
@@ -185,18 +190,22 @@ Full matrix: `docs/TOKEN_AND_FUNDS_FLOW.md` §6.
 | Foundry endpoint | `bot_testnet` in `contracts/foundry.toml` |
 | Frontend chain | `BOT Chain Bohr Testnet` in `frontend/src/lib/chain.ts` |
 | Default chain | Yes — this build defaults to 968 |
-| Deployment status | **Not deployed** (no operator credentials/faucet funds configured) |
+| Deployment status | **Deployed and validated (unaudited testnet instance)** |
+| Validated deployment | `0x6448668ae9cbbc41617c2bd5e4f29279320a2700` |
+| Deployment tx | `0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61` (block 26178651) |
+| Explorer (verified) | https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700 |
+| Owner | throwaway key generated for validation and intentionally discarded (admin functions inert) |
 
-Read-only reachability verification (2026-10-08 UTC): `cast chain-id` = `968`;
-`cast block-number` = `26162704`. Local end-to-end deployment on a simulated 968 node
-succeeded (see evidence doc).
+RPC capability (2026-10-08): `eth_getLogs` **works** on `rpc.bohr.life` (single blocks
+through ~full history; see `docs/evidence/bot-rpc-capability.md`), contrary to the
+published statement that it is disabled. Intermittent nginx 503s require retry logic.
 
-Deploy command (when credentials exist):
+Deploy with the guarded wrapper (refuses any chain except 968):
 
 ```shell
-forge script script/DeployNexusEscrow.s.sol:DeployNexusEscrow \
-  --rpc-url bot_testnet --broadcast \
-  --verify --verifier blockscout --verifier-url https://scan.bohr.life/api/ -vvvv
+export PRIVATE_KEY=...            # burner testnet key, never printed
+export CONFIRM_BOT_968_DEPLOY=BOT-968
+scripts/deploy-bot-968.sh         # runs dry run, balance check, broadcast, manifest
 ```
 
 ## 16. Proposed 677 configuration (BOT Chain mainnet — documented, opt-in only)
@@ -249,23 +258,38 @@ but no transaction was broadcast (`docs/TESTNET_EVIDENCE.md`).
 
 ## 20. Unresolved questions for BOT Chain engineers
 
-1. **EVM hardfork support**: the contract is compiled with solc 0.8.26 (default
-   `cancun` EVM target). Does BOT Chain (968 and 677) support Cancun opcodes
-   (`MCOPY`, `TSTORE`, blob-related opcodes not used but emitted by toolchain
-   metadata)? If not, we will rebuild with `evm_version = "paris"` and re-verify.
-2. **Finality/confirmation depth**: recommended `confirmations` for the indexer and
+Resolved by measurement (2026-10-08, evidence in `docs/evidence/`):
+
+- ~~Does `eth_getLogs` work?~~ **Yes** on both 968 and 677, contrary to the published
+  statement that it is disabled. Single blocks through ~full-history empty-filter ranges
+  succeed; there is no observed hard range cap. Please confirm whether the documented
+  disablement is stale, or whether availability is subject to change without notice.
+- ~~Is the explorer Blockscout and does verification need an API key?~~ **Yes/No**:
+  Blockscout with the rust verifier microservice; `forge verify-contract --verifier
+  blockscout --verifier-url https://scan.bohr.life/api/` worked with no API key, and the
+  contract is verified (`is_verified: true`, solc 0.8.26, evm cancun).
+
+Still open:
+
+1. **EVM hardfork support**: the contract deploys and executes on Bohr with a solc
+   0.8.26 `cancun` target, and the explorer verified it under `evm_version: cancun`.
+   The one previously verified contract we inspected used `paris`. Is Cancun officially
+   supported on 968/677, or should we rebuild with `evm_version = "paris"` for
+   conservative compatibility? (The frontend and indexer are unaffected either way.)
+2. **Transient gateway 503s**: on 2026-10-08 ~20:44-20:46 UTC, `rpc.bohr.life` returned
+   nginx `503 Service Temporarily Unavailable` for several minutes even for
+   `eth_chainId`, then recovered; no 429s or rate-limit headers were observed. Is there
+   a documented availability target / maintenance behaviour for this endpoint?
+3. **Finality/confirmation depth**: recommended `confirmations` for the indexer and
    frontend log scan on each chain.
-3. **Faucet**: official Bohr testnet faucet (and any rate limits) so a public testnet
-   deployment can be funded without manufacturing credentials.
-4. **Explorer verification**: is `scan.bohr.life` Blockscout (for
-   `--verifier blockscout --verifier-url https://scan.bohr.life/api/`), and does it
-   need an API key?
-5. **RPC limits**: `eth_getLogs` range cap, rate limits, and whether a dedicated
-   endpoint is offered for indexers.
-6. **Canonical test tokens**: any official BOT-chain test ERC-20 to exercise the
-   ERC-20 path in public testing.
-7. **Native symbol/decimals confirmation**: BOT, 18 decimals (assumed from published
-   docs; confirm).
+4. **`eth_getLogs` operational guidance**: while ranges up to full history are accepted,
+   payload scales with activity (mainnet: 64k blocks -> 12.4k logs / ~4 s for a busy
+   token). Any recommended max range or response-size cap we should target?
+5. **Faucet**: official Bohr testnet faucet (and any rate limits) for operators without
+   pre-funded keys.
+6. **Canonical test tokens**: any official BOT-chain test ERC-20 to exercise the ERC-20
+   path in public testing.
+7. **Native symbol/decimals confirmation**: BOT, 18 decimals (assumed; confirm).
 8. **Wallet support**: recommended wallet configuration/chain parameters for
    RainbowKit/wagmi users on Bohr.
 9. **Contract standards expectations**: any BOT Chain-specific registry, verifier
@@ -275,13 +299,17 @@ but no transaction was broadcast (`docs/TESTNET_EVIDENCE.md`).
 
 ## 21. Mainnet-readiness gates
 
-None of the following are satisfied today. This list is the gate, not a claim:
+This list is the gate, not a claim:
 
 - [ ] Independent security review with all high/medium findings resolved.
-- [ ] Public testnet deployment with an operational runbook (deploy/verify/monitor).
-- [ ] Indexer service running with reorg monitoring and alerting.
-- [ ] Frontend deployed with mainnet disabled by default and an explicit opt-in build.
+- [x] Public testnet deployment with a guarded deploy wrapper + verification runbook.
+- [x] Live testnet lifecycle validation with event/state reconciliation (23/23 checks).
+- [ ] Indexer service running with reorg monitoring and alerting. (Bounded log scan
+      works today; a hosted indexer is not built.)
+- [ ] Frontend deployed publicly with mainnet disabled by default and an explicit
+      opt-in build. (Build safety is implemented and CI-checked; no public host yet.)
 - [ ] Multi-sig ownership for `owner` and `feeRecipient`; documented key custody.
+      (The validated instance intentionally used discarded throwaway keys.)
 - [ ] Incident process: pause authority, communications, and (given
       non-upgradeability) a migration plan.
 - [ ] Confirmed compatibility with BOT Chain EVM version and finality model.
