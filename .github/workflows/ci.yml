@@ -41,10 +41,10 @@ jobs:
       - name: Build
         run: forge build --sizes
 
-      - name: Test (default profile: fuzz 1024, invariants 128x64)
+      - name: Test (default profile - fuzz 1024, invariants 128x64)
         run: forge test -vvv
 
-      - name: Fuzz/invariant stress (CI profile: fuzz 4096, invariants 256x128)
+      - name: Fuzz/invariant stress (CI profile - fuzz 4096, invariants 256x128)
         run: FOUNDRY_PROFILE=ci forge test -vvv
 
   frontend:
@@ -99,6 +99,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install YAML tooling
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: Workflow syntax
+        run: python3 -c "import glob, yaml; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('workflow yaml OK')"
 
       - name: Python syntax
         run: python3 -m py_compile scripts/*.py
