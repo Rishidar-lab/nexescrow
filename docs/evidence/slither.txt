@@ -1,0 +1,12 @@
+UTC=2026-10-08T17:54:20Z
+$ slither . --filter-paths 'node_modules|test'
+INFO:Detectors:
+Detector: uninitialized-local
+INFO:Detectors:
+Detector: timestamp
+INFO:Detectors:
+Detector: low-level-calls
+INFO:Detectors:
+Detector: unindexed-event-address
+INFO:Slither:. analyzed (11 contracts with 101 detectors), 8 result(s) found
+UTC=2026-10-08T17:54:23Z

@@ -1,0 +1,36 @@
+UTC_START=2026-10-08T17:51:25Z
+chainId=968
+contract=0x5fbdb2315678afecb367f032d93f642f64180aa3
+buyer=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 seller=0x70997970C51812dc3A010C7d01b50e0d17dc79C8 arbiter=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+=== CREATE agreement 0: milestones [1.5 BOT, 0.5 BOT], no deadline ===
+{"transactionHash":"0xe8925e9a8360fd46045cf5cd51339813d2c9d22d2b220cd7cf281cbbcdfbe19f","status":"0x1","blockNumber":"0x2"}
+=== FUND 2.0 BOT ===
+{"transactionHash":"0x425e653e0f7911801509ec34bab3df0f53a0434e50605c1a6f686860bfbbde46","status":"0x1","blockNumber":"0x3"}
+seller_balance_before=10000000000000000000000
+escrow_balance_after_fund=2000000000000000000
+=== APPROVE M0 (buyer) ===
+{"transactionHash":"0x416f2d72d56882e64b0d515bbe7668f4552210ba6867d149399f2f283591cc45","status":"0x1","blockNumber":"0x4"}
+seller_balance_after_m0=10001485000000000000000
+=== RAISE DISPUTE M1 (seller) ===
+{"transactionHash":"0x15edf2ed13cc0b9fb30d0ede45a0ca2a87dfcf43cd766659a4643eaf2d91b870","status":"0x1","blockNumber":"0x5"}
+=== RESOLVE M1 60% to buyer (arbiter) ===
+{"transactionHash":"0xb5b63718c63b5c7f5e72c091a5836488f11bc2e9672f9ecfdd59b88bf13f5f8e","status":"0x1","blockNumber":"0x6"}
+seller_balance_final=10001682976321603944485
+buyer_balance_final=9998298213070681663612
+escrow_balance_final=17000000000000000
+accruedFees_native=17000000000000000 [1.7e16]
+=== AGREEMENT 0 FINAL STATE (buyer,seller,arbiter,token,total,feeBps,status,createdAt,deadline,count,next) ===
+0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+0x0000000000000000000000000000000000000000
+2000000000000000000 [2e18]
+100
+2
+1791481885 [1.791e9]
+0
+2
+2
+=== MILESTONES 0 ===
+[(1500000000000000000 [1.5e18], 1), (500000000000000000 [5e17], 3)]
+UTC_END=2026-10-08T17:51:26Z

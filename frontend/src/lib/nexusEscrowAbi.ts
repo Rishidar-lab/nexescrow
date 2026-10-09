@@ -1,5 +1,5 @@
 // Auto-generated from contracts/out/NexusEscrow.sol/NexusEscrow.json — do not hand-edit.
-// Regenerate with: cd contracts && forge build, then re-copy the `abi` field.
+// Regenerate with: cd contracts && forge build, then run scripts/gen-abi.mjs (or re-copy the `abi` field).
 
 export const nexusEscrowAbi = [
   {
@@ -917,6 +917,11 @@ export const nexusEscrowAbi = [
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedTokenBehavior",
+    "inputs": []
   },
   {
     "type": "error",

@@ -1,0 +1,48 @@
+{
+  "chainId": 968,
+  "escrow": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+  "agreements": {
+    "A": {
+      "id": 0,
+      "buyer": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+      "seller": "0x00669c300511207767dD0556F0575C8d7bbEBF8E",
+      "arbiter": "0x617BCBCA7d5F42F0cb5a6d03BdA9F1f1A3A6C433",
+      "token": "0x0000000000000000000000000000000000000000",
+      "totalAmount": 100000000000000000,
+      "feeBps": 100,
+      "status": 2,
+      "milestoneCount": 2,
+      "nextMilestone": 2,
+      "milestones": [
+        {
+          "amount": 50000000000000000,
+          "status": 1
+        },
+        {
+          "amount": 50000000000000000,
+          "status": 1
+        }
+      ]
+    },
+    "B": {
+      "id": 1,
+      "buyer": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+      "seller": "0x00669c300511207767dD0556F0575C8d7bbEBF8E",
+      "arbiter": "0x617BCBCA7d5F42F0cb5a6d03BdA9F1f1A3A6C433",
+      "token": "0x0000000000000000000000000000000000000000",
+      "totalAmount": 100000000000000000,
+      "feeBps": 100,
+      "status": 2,
+      "milestoneCount": 1,
+      "nextMilestone": 1,
+      "milestones": [
+        {
+          "amount": 100000000000000000,
+          "status": 3
+        }
+      ]
+    }
+  },
+  "accruedFeesNative": "1400000000000000",
+  "escrowBalanceWei": "1400000000000000"
+}

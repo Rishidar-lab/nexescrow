@@ -4,7 +4,9 @@ import { useMemo } from "react";
 import { useAccount, usePublicClient, useReadContracts } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
-import { escrowAbi, escrowAddress, type Agreement } from "@/lib/contract";
+import { escrowAbi, escrowAddress, escrowConfigured, type Agreement } from "@/lib/contract";
+import { selectedChainId } from "@/lib/chain";
+import { createIndexer } from "@/lib/indexer";
 
 interface DiscoveredAgreement {
   id: bigint;
@@ -19,35 +21,22 @@ export interface MyAgreementRow {
   agreement?: Agreement;
 }
 
-// Discovers agreements by scanning AgreementCreated logs from genesis and
-// filtering client-side for the connected wallet. Fine for a testnet-scale
-// deployment; a production build should back this with an indexer/subgraph
-// instead of a full log scan.
+// Discovery goes through the agreement-index abstraction (bounded RPC log scan
+// by default; HTTP indexer when configured). Contract-state reads are batched
+// directly against the configured chain.
 export function useMyAgreements() {
   const { address } = useAccount();
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({ chainId: selectedChainId });
+
+  const index = useMemo(() => createIndexer(publicClient), [publicClient]);
 
   const logsQuery = useQuery({
-    queryKey: ["agreement-logs", escrowAddress, publicClient?.chain.id],
+    queryKey: ["agreement-discovery", selectedChainId, escrowAddress, address],
     queryFn: async (): Promise<DiscoveredAgreement[]> => {
-      if (!publicClient) return [];
-      const logs = await publicClient.getContractEvents({
-        address: escrowAddress,
-        abi: escrowAbi,
-        eventName: "AgreementCreated",
-        fromBlock: 0n,
-        toBlock: "latest",
-      });
-      return logs
-        .filter((log) => log.args.id !== undefined)
-        .map((log) => ({
-          id: log.args.id as bigint,
-          buyer: log.args.buyer as Address,
-          seller: log.args.seller as Address,
-          arbiter: log.args.arbiter as Address,
-        }));
+      if (!index || !address) return [];
+      return index.discoverAgreementsForParticipant(address);
     },
-    enabled: !!publicClient,
+    enabled: !!index && !!address,
     staleTime: 15_000,
   });
 
@@ -55,19 +44,20 @@ export function useMyAgreements() {
     if (!address || !logsQuery.data) return [];
     const addr = address.toLowerCase();
     return logsQuery.data
-      .filter((a) => a.buyer.toLowerCase() === addr || a.seller.toLowerCase() === addr || a.arbiter.toLowerCase() === addr)
-      .map((a) => ({
-        id: a.id,
-        role: (a.buyer.toLowerCase() === addr
-          ? "buyer"
-          : a.seller.toLowerCase() === addr
-            ? "seller"
-            : "arbiter") as MyAgreementRow["role"],
-      }))
+      .map((a) => {
+        const buyer = a.buyer.toLowerCase();
+        const seller = a.seller.toLowerCase();
+        const arbiter = a.arbiter.toLowerCase();
+        const role: MyAgreementRow["role"] | null =
+          buyer === addr ? "buyer" : seller === addr ? "seller" : arbiter === addr ? "arbiter" : null;
+        return role ? { id: a.id, role } : null;
+      })
+      .filter((row): row is { id: bigint; role: MyAgreementRow["role"] } => row !== null)
       .sort((a, b) => Number(b.id - a.id));
   }, [address, logsQuery.data]);
 
   const contracts = mine.map((a) => ({
+    chainId: selectedChainId,
     address: escrowAddress,
     abi: escrowAbi,
     functionName: "agreements" as const,
@@ -76,7 +66,7 @@ export function useMyAgreements() {
 
   const detailsQuery = useReadContracts({
     contracts,
-    query: { enabled: mine.length > 0 },
+    query: { enabled: mine.length > 0 && escrowConfigured },
   });
 
   const rows: MyAgreementRow[] = mine.map((a, i) => {
@@ -109,5 +99,6 @@ export function useMyAgreements() {
     rows,
     isLoading: logsQuery.isLoading || detailsQuery.isLoading,
     error: logsQuery.error,
+    configured: escrowConfigured,
   };
 }

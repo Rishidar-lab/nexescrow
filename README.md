@@ -2,12 +2,15 @@
 
 # NexEscrow
 
-**Non-custodial, milestone-based escrow for on-chain agreements on Nexus L1.**
+**Non-custodial, milestone-based escrow for on-chain agreements. Chain-agnostic.**
 
 [![CI](https://github.com/Rishidar-lab/nexescrow/actions/workflows/ci.yml/badge.svg)](https://github.com/Rishidar-lab/nexescrow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.26-363636?logo=solidity)](contracts/src/NexusEscrow.sol)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white)](frontend)
+
+**Status: UNAUDITED · TESTNET STAGE · NOT PRODUCTION READY.** No independent audit has
+been performed. Mainnet deployment is documented but opt-in and blocked by default.
 
 </div>
 
@@ -15,101 +18,111 @@
 
 ## Overview
 
-Two parties agree on a milestone-based deliverable. The buyer locks funds (native NEX
-or any ERC-20) into `NexusEscrow`; the seller gets paid out milestone by milestone as
-the buyer approves each one. Neither party ever custodies the other's funds, and
-neither can unilaterally seize them — if buyer and seller disagree on a milestone,
-a third-party arbiter chosen at agreement creation splits that milestone's payout.
+Two parties agree on a milestone-based deliverable. The buyer locks funds (the chain's
+native asset or any supported ERC-20) into `NexusEscrow`; the seller is paid milestone
+by milestone as the buyer approves each one. Neither party ever custodies the other's
+funds, and neither can unilaterally seize them — if buyer and seller disagree on a
+milestone, a third-party arbiter chosen at creation splits that milestone's payout.
+
+The settlement core is chain-agnostic: no chain-id, native-symbol, or decimals
+assumptions. A single frontend can target Nexus or BOT Chain, testnets by default.
 
 ## Key features
 
-- **Milestone-based release.** An agreement is a sequence of milestones, each released
-  in order as the buyer approves it — not one all-or-nothing payout.
-- **Arbitrated disputes, not unilateral timeouts.** Either party can dispute the current
-  milestone; the arbiter then splits it by basis points between buyer and seller. There
-  is deliberately no unilateral timeout-release — a ghosted counterparty is resolved by
-  the arbiter, not a clock, which keeps the state machine small and removes a class of
-  timeout-griefing attacks.
-- **Native NEX or any ERC-20**, via `SafeERC20`.
-- **Protocol fee**, in basis points, capped at 10% (`MAX_FEE_BPS`), snapshotted onto
-  each agreement at creation time so a later fee change never affects agreements
-  already in flight. Fee is only ever taken from the portion actually paid to the
-  seller — a buyer refund is never taxed.
+- **Milestone-based release.** Milestones release strictly in order as the buyer
+  approves them — not one all-or-nothing payout.
+- **Arbitrated disputes, not unilateral timeouts.** Either party can dispute the
+  current milestone; the arbiter splits it by basis points. No timeout-release by
+  design (removes timeout-griefing; a silent arbiter is a disclosed liveness risk).
+- **Native asset or ERC-20**, via `SafeERC20`. **Fee-on-transfer tokens are rejected at
+  funding time** rather than silently under-collateralizing the agreement.
+- **Protocol fee**, capped at 10%, snapshotted per agreement, charged only on the
+  seller's side; buyer refunds are untaxed.
+- **Non-upgradeable, no admin fund access.** No proxy, no `delegatecall`, no
+  privileged path to escrow principal.
+- **Fail-closed chain safety.** Frontend defaults to BOT Bohr testnet (968); mainnet
+  requires explicit opt-in; every write asserts the wallet is on the selected chain.
 
 ## Architecture / security notes
 
-- **Contract:** `contracts/src/NexusEscrow.sol`. Single contract, agreements keyed by
-  an incrementing `uint256` id, `ReentrancyGuard` + checks-effects-interactions on every
-  fund-moving function, `Pausable` + `Ownable2Step` for admin controls. Not upgradeable
-  by design — no proxy, no admin fund access beyond the fee split.
-- **Test suite:** 57 Foundry tests across lifecycle, disputes, admin, and a dedicated
-  security suite — including a reentrancy PoC (a malicious buyer contract that tries to
-  reenter `approveMilestone` mid-payout, blocked by the shared `ReentrancyGuard` lock)
-  and fuzz invariants (milestone sums always reconstitute the total; dispute splits
-  always conserve buyer + seller + fee = milestone amount). See
-  [`contracts/test/`](contracts/test).
-- **Agreement discovery is log-based**, not an on-chain enumerable list — the frontend
-  finds "your agreements" by scanning `AgreementCreated` events and filtering
-  client-side. That's fine at testnet scale; a production deployment should back it
-  with an indexer/subgraph instead of a full log scan (see
-  [`frontend/src/hooks/useMyAgreements.ts`](frontend/src/hooks/useMyAgreements.ts)).
-- **Audit status:** unaudited. This is a from-scratch rebuild, not yet reviewed by a
-  third party. The frontend defaults to Nexus **mainnet** — anything deployed there
-  holds real user funds against unaudited code; deploy to testnet while iterating.
+- **Contract:** `contracts/src/NexusEscrow.sol` — single non-upgradeable contract,
+  agreements keyed by incrementing ids, cursor-only milestone progression,
+  `ReentrancyGuard` + checks-effects-interactions on every fund-moving function,
+  `Pausable` + `Ownable2Step` for availability/fee admin only.
+- **Tests:** 112 Foundry tests (lifecycle, disputes, admin, authorization matrix,
+  token-edge cases, fuzz, and a handler-driven stateful invariant suite asserting exact
+  solvency for native and ERC-20). 98.6% line / 97.4% branch coverage of the contract.
+- **Static analysis:** Slither 0.11.5 reports no high/medium findings; informational
+  results are documented, not suppressed.
+- **Agreement discovery:** bounded, chunked, deduped direct-RPC log scan by default,
+  behind an index adapter; production ingestion spec in [`docs/INDEXING.md`](docs/INDEXING.md).
+- **Audit status:** unaudited. See [`SECURITY.md`](SECURITY.md).
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Actors, state machines, function matrix, invariants, threat catalogue |
+| [`docs/ARBITRATION_MODEL.md`](docs/ARBITRATION_MODEL.md) | Arbiter powers/limits, split math, trust assumptions |
+| [`docs/TOKEN_AND_FUNDS_FLOW.md`](docs/TOKEN_AND_FUNDS_FLOW.md) | Asset flows, conservation, token support matrix |
+| [`docs/BOTCHAIN_INTEGRATION.md`](docs/BOTCHAIN_INTEGRATION.md) | BOT Chain dossier: config, requirements, open questions, mainnet gates |
+| [`docs/DEPLOYMENT_RUNBOOK.md`](docs/DEPLOYMENT_RUNBOOK.md) | Testnet-first deployment, guards, incident/rollback |
+| [`docs/TESTNET_EVIDENCE.md`](docs/TESTNET_EVIDENCE.md) | Raw evidence log (local 968 lifecycle, guard proof, test/coverage runs) |
+| [`docs/INDEXING.md`](docs/INDEXING.md) | Event identity and production indexing design |
+| [`docs/ECOSYSTEM_PROPOSAL.md`](docs/ECOSYSTEM_PROPOSAL.md) | Positioning and phased roadmap (no fabricated traction) |
+| [`SECURITY.md`](SECURITY.md) | Reporting policy and security guarantees |
 
 ## Networks
 
-Confirmed against [docs.nexus.xyz](https://docs.nexus.xyz/network/building-on-nexus/endpoints):
+| | Chain ID | RPC | Explorer | Native |
+|---|---|---|---|---|
+| Nexus Testnet | `3945` | `https://testnet.rpc.nexus.xyz` | `https://testnet.explorer.nexus.xyz` | NEX |
+| Nexus Mainnet | `3946` | `https://mainnet.rpc.nexus.xyz` | `https://explorer.nexus.xyz` | NEX |
+| **BOT Chain Bohr (testnet)** | `968` | `https://rpc.bohr.life` | `https://scan.bohr.life` | BOT |
+| BOT Chain Mainnet | `677` | `https://rpc.botchain.ai` | `https://scan.botchain.ai` | BOT |
 
-| | Mainnet | Testnet |
-|---|---|---|
-| Chain ID | `3946` | `3945` |
-| RPC | `https://mainnet.rpc.nexus.xyz` | `https://testnet.rpc.nexus.xyz` |
-| Explorer | `https://explorer.nexus.xyz` | `https://testnet.explorer.nexus.xyz` |
-| Currency | NEX (18 decimals) | NEX |
-
-Both are pre-configured as named endpoints (`nexus_mainnet` / `nexus_testnet`) in
-`contracts/foundry.toml`. The frontend (`frontend/src/lib/chain.ts`) defaults to
-mainnet; override `NEXT_PUBLIC_NEXUS_RPC_URL`/`NEXT_PUBLIC_NEXUS_EXPLORER_URL` (and
-flip `id`/`testnet` in `chain.ts`) to point a build at testnet instead.
+BOT Bohr has a live, source-verified **unaudited testnet instance** at
+[`0x6448…2700`](https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700)
+(deployed and lifecycle-validated 2026-10-08; owned by discarded throwaway keys).
+Mainnets are configured but **opt-in only**: the deploy script refuses them unless
+`ALLOW_MAINNET_DEPLOYMENT=true`, and the frontend ignores mainnet selection unless
+`NEXT_PUBLIC_ALLOW_MAINNET=true`. This repository has never been deployed to a mainnet.
 
 ## Quick start
-
-### Prerequisites
-
-- [Foundry](https://book.getfoundry.sh/) (`forge`, `cast`, `anvil`)
-- Node.js ≥ 18, [pnpm](https://pnpm.io/)
 
 ### Contracts
 
 ```bash
 cd contracts
 pnpm install        # OpenZeppelin Contracts
-forge test
+forge test          # 112 tests; fuzz 1024 runs; invariants 128x64
+forge fmt --check
 ```
 
-See [`contracts/README.md`](contracts/README.md) for deploying to Nexus L1
-(mainnet or testnet).
+Deploy to BOT Bohr testnet (968):
+
+```bash
+cp .env.example .env   # PRIVATE_KEY + optional ESCROW_OWNER/ESCROW_FEE_RECIPIENT
+source .env
+forge script script/DeployNexusEscrow.s.sol:DeployNexusEscrow \
+  --rpc-url bot_testnet --broadcast \
+  --verify --verifier blockscout --verifier-url https://scan.bohr.life/api/ -vvvv
+```
 
 ### Frontend
 
 ```bash
 cd frontend
 pnpm install
-cp .env.example .env.local   # set the deployed contract address + RPC URL
+cp .env.example .env.local   # NEXT_PUBLIC_CHAIN_ID + per-chain contract address
 pnpm dev
 ```
 
-See [`frontend/README.md`](frontend/README.md) for the full env var list.
-
 ## Contributing & security
 
-Found a vulnerability? Please don't open a public issue — reach out privately first.
-For general contributions, open an issue to discuss the change before sending a PR.
+Found a vulnerability? Report it privately — see [`SECURITY.md`](SECURITY.md). For
+general contributions, open an issue to discuss the change before sending a PR.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-*Built by [@parzival](https://github.com/Rishidar-lab) — security researcher & builder.*
