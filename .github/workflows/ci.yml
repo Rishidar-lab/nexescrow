@@ -87,6 +87,9 @@ jobs:
       - name: Chain safety — explicit opt-in allows the requested mainnet
         run: NEXT_PUBLIC_CHAIN_ID=3946 NEXT_PUBLIC_ALLOW_MAINNET=true EXPECT_CHAIN_ID=3946 pnpm check:chain-safety
 
+      - name: Finality policy — unconfirmed deployment stays pending
+        run: pnpm check:finality-policy
+
       - name: Build
         run: pnpm build
 

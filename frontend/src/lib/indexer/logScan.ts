@@ -1,5 +1,6 @@
 import type { Address, Hex, PublicClient } from "viem";
 import { escrowAbi } from "@/lib/contract";
+import { finalityPolicyFor, scanReadiness } from "@/lib/finality";
 import {
   dedupeEvents,
   eventId,
@@ -21,8 +22,10 @@ import {
  *    (chainId, contractAddress, txHash, logIndex) and deduplicated on merge.
  *  - REORG RECONCILIATION: a full rescan replaces records rather than appending;
  *    overlapping windows re-fetch recently-seen ranges, so reorged logs
- *    disappear on the next sync. Checkpoints are only advanced to a
- *    `confirmations`-deep safe head.
+ *    disappear on the next sync. Checkpoints are only advanced to an
+ *    indexing-safety-depth confirmed head.
+ *  - PENDING DEPLOYMENTS: if the deploy block is newer than the safe head, no
+ *    logs are exposed and no checkpoint advances; the scan waits for depth.
  *  - CHAIN + CONTRACT SEPARATION: cache keys and identity include both; the
  *    adapter refuses a public client on a different chain.
  */
@@ -33,17 +36,20 @@ export interface LogScanOptions {
   publicClient: PublicClient;
   /** First block to scan; use the contract's deployment block to bound work. */
   startBlock: bigint;
-  /** Reorg safety depth. Default 12. */
+  /**
+   * Indexing/reorg safety depth. Defaults to the per-network finality policy.
+   * This is intentionally distinct from write-receipt confirmations.
+   */
   confirmations?: number;
   /** Block window per eth_getLogs call. Default 2,000. */
   chunkSize?: bigint;
-  /** How long a completed scan is reused before re-syncing. Default 15s. */
+  /** How long a completed/pending scan is reused before re-syncing. Default 15s. */
   staleAfterMs?: number;
 }
 
 interface ScanCache {
   records: EscrowEventRecord[];
-  safeHead: bigint;
+  safeHead: bigint | null;
   fetchedAt: number;
 }
 
@@ -82,10 +88,12 @@ export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAda
     contractAddress,
     publicClient,
     startBlock,
-    confirmations = 12,
+    confirmations,
     chunkSize = 2_000n,
     staleAfterMs = 15_000,
   } = options;
+  const indexingSafetyDepth =
+    confirmations ?? finalityPolicyFor(chainId).indexingSafetyDepth;
 
   async function sync(): Promise<ScanCache> {
     if (publicClient.chain && publicClient.chain.id !== chainId) {
@@ -99,15 +107,24 @@ export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAda
     const now = Date.now();
 
     const latest = await publicClient.getBlockNumber();
-    const confirmationsBig = BigInt(confirmations);
-    const safeHead = latest > confirmationsBig ? latest - confirmationsBig : 0n;
+    const readiness = scanReadiness(startBlock, latest, indexingSafetyDepth);
+    const safeHead = readiness.safeHead;
 
     if (existing && existing.safeHead === safeHead && now - existing.fetchedAt < staleAfterMs) {
       return existing;
     }
 
+    // Fail closed while the deployment itself is not yet deep enough. In
+    // particular, do not fall back to `latest`: that would expose logs newer
+    // than the indexing safety policy permits.
+    if (!readiness.ready) {
+      const pending: ScanCache = { records: [], safeHead, fetchedAt: now };
+      cache.set(key, pending);
+      return pending;
+    }
+
     const collected = new Map<string, EscrowEventRecord>();
-    const head = safeHead >= startBlock ? safeHead : latest;
+    const head = readiness.safeHead;
 
     for (let cursor = startBlock; cursor <= head; cursor += chunkSize) {
       const to = cursor + chunkSize - 1n > head ? head : cursor + chunkSize - 1n;
@@ -151,11 +168,11 @@ export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAda
       ),
     );
 
-    const next: ScanCache = { records, safeHead, fetchedAt: now };
+    const next: ScanCache = { records, safeHead: head, fetchedAt: now };
     cache.set(key, next);
-    // Checkpoint only moves to a confirmed head; a stale checkpoint can never
-    // cause records to be "skipped" because the in-memory cache is authoritative.
-    if (safeHead >= startBlock) writeCheckpoint(chainId, contractAddress, safeHead + 1n);
+    // Checkpoint only moves to a confirmed indexing head; a stale checkpoint can
+    // never cause records to be skipped because the in-memory cache is authoritative.
+    writeCheckpoint(chainId, contractAddress, head + 1n);
     return next;
   }
 

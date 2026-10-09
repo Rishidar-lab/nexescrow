@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useChainId, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { isCorrectChain, selectedChain, selectedChainId } from "@/lib/chain";
 import { escrowConfigured } from "@/lib/contract";
+import { finalityPolicyFor } from "@/lib/finality";
 
 /** Full transaction lifecycle. Nothing writes until the chain guard passes. */
 export type TxPhase =
@@ -25,7 +26,11 @@ export interface EscrowTxState {
   phaseLabel: string;
 }
 
-const CONFIRMATIONS = 2;
+// This is the write-receipt lifecycle stage. It is intentionally distinct from
+// the deeper indexing/reorg safety depth used by log discovery. Both values live
+// in the per-network policy so they can be updated when authoritative guidance
+// is agreed without letting the two concepts drift silently.
+const WRITE_RECEIPT_CONFIRMATIONS = finalityPolicyFor(selectedChainId).writeReceiptConfirmations;
 
 const PHASE_LABELS: Record<TxPhase, string> = {
   idle: "",
@@ -118,10 +123,14 @@ export function useEscrowWrite() {
         }
         setState({ phase: "mined", hash, phaseLabel: PHASE_LABELS.mined });
 
-        await publicClient.waitForTransactionReceipt({ hash, confirmations: CONFIRMATIONS });
+        await publicClient.waitForTransactionReceipt({
+          hash,
+          confirmations: WRITE_RECEIPT_CONFIRMATIONS,
+        });
         setState({ phase: "confirmed", hash, phaseLabel: PHASE_LABELS.confirmed });
 
-        // Application reconciliation: refetch contract state after confirmation.
+        // Application reconciliation: refetch contract state after the write-receipt
+        // confirmation stage. Log discovery applies its separate indexing safety depth.
         if (onConfirmed) await onConfirmed();
         setState({ phase: "reconciled", hash, phaseLabel: PHASE_LABELS.reconciled });
 
@@ -146,6 +155,6 @@ export function useEscrowWrite() {
     switchToSelectedChain,
     walletChainId,
     correctChain: isCorrectChain(walletChainId),
-    confirmations: CONFIRMATIONS,
+    confirmations: WRITE_RECEIPT_CONFIRMATIONS,
   };
 }
