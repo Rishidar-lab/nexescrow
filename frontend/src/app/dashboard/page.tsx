@@ -7,6 +7,7 @@ import { AgreementCard } from "@/components/AgreementCard";
 import { formatTokenAmount } from "@/lib/format";
 import { useTokenMeta } from "@/hooks/useTokenMeta";
 import { selectedChain, selectedChainId } from "@/lib/chain";
+import { NATIVE_TOKEN } from "@/lib/contract";
 
 export default function DashboardPage() {
   const { isConnected, address } = useAccount();
@@ -17,10 +18,27 @@ export default function DashboardPage() {
   const asBuyer = rows.filter((r) => r.role === "buyer").length;
   const asSeller = rows.filter((r) => r.role === "seller").length;
   const active = rows.filter((r) => r.agreement?.status === 1).length;
+
+  // Only native-token agreements may be summed here. `totalAmount` is a raw
+  // integer in each agreement's OWN token: an ERC-20 amount uses that token's
+  // decimals and units, so adding it to a native amount produces a number that
+  // is not a value at all. The card is labelled and formatted with the native
+  // token's decimals and symbol, so only native amounts belong in the sum.
   const activeValue = rows.reduce(
-    (sum, r) => sum + (r.agreement?.status === 1 ? r.agreement.totalAmount : 0n),
+    (sum, r) =>
+      sum +
+      (r.agreement?.status === 1 && r.agreement.token.toLowerCase() === NATIVE_TOKEN
+        ? r.agreement.totalAmount
+        : 0n),
     0n,
   );
+
+  // Counted separately so the omission above is visible rather than silent.
+  const activeNonNative = rows.filter(
+    (r) =>
+      r.agreement?.status === 1 &&
+      r.agreement.token.toLowerCase() !== NATIVE_TOKEN,
+  ).length;
 
   if (!isConnected || !address) {
     return (
@@ -66,7 +84,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="card flex items-center justify-between px-4 py-3 text-sm">
-        <span className="text-white/50">Total value in your active agreements</span>
+        <span className="text-white/50">
+          Total value in your active {selectedChain.nativeCurrency.symbol} agreements
+          {activeNonNative > 0
+            ? ` (${activeNonNative} active agreement${activeNonNative === 1 ? "" : "s"} in another token excluded)`
+            : ""}
+        </span>
         <span className="font-semibold">
           {formatTokenAmount(activeValue, walletTokenMeta.decimals)} {walletTokenMeta.symbol}
         </span>
