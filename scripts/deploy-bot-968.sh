@@ -32,6 +32,26 @@ BROADCAST_ART="$CONTRACTS_DIR/broadcast/DeployNexusEscrowBOT.s.sol/968/run-lates
 fail() { printf 'ABORT: %s\n' "$*" >&2; exit 1; }
 note() { printf '%s\n' "$*"; }
 
+# Run a command, tee its output to a log, and keep it readable on failure.
+#
+# The previous form piped into `tee "$LOG" >/dev/null`. With `set -o pipefail`
+# that DID abort on failure — but `>/dev/null` sent every byte of the error to
+# the log file, so the operator saw a silent non-zero exit and had to open the
+# log to learn why. Here the output still lands in the same log (the evidence
+# trail is unchanged) and the tail is replayed to stderr when the command fails.
+# usage: run_logged <logfile> <working-dir> <cmd> [args...]
+run_logged() {
+    local log="$1" dir="$2"; shift 2
+    local status=0
+    ( cd "$dir" && "$@" ) >"$log" 2>&1 || status=$?
+    if [ "$status" -ne 0 ]; then
+        printf 'ABORT: command failed (exit %s). Last 40 lines of %s:\n' "$status" "$log" >&2
+        tail -n 40 "$log" >&2 || true
+        exit 1
+    fi
+    return 0
+}
+
 # --- preconditions -----------------------------------------------------------
 
 [ -n "${PRIVATE_KEY:-}" ] || fail "PRIVATE_KEY is not set. Operator credentials are required (the key is never printed)."
@@ -69,7 +89,7 @@ PREDICTED="$(cast compute-address "$DEPLOYER" --rpc-url "$RPC_URL" 2>/dev/null |
 mkdir -p "$EVIDENCE_DIR"
 DRY_LOG="$EVIDENCE_DIR/deploy-968-dry-run.log"
 note "Running dry run (no broadcast)..."
-( cd "$CONTRACTS_DIR" && forge script "$SCRIPT" --rpc-url "$RPC_URL" -vv ) 2>&1 | tee "$DRY_LOG" >/dev/null
+run_logged "$DRY_LOG" "$CONTRACTS_DIR" forge script "$SCRIPT" --rpc-url "$RPC_URL" -vv
 
 GAS_ESTIMATE="$(grep -oE 'Estimated total gas used for script: [0-9]+' "$DRY_LOG" | grep -oE '[0-9]+' | tail -1 || true)"
 REQUIRED_ETH="$(grep -oE 'Estimated amount required: [0-9.]+' "$DRY_LOG" | grep -oE '[0-9.]+' | tail -1 || true)"
@@ -94,7 +114,7 @@ fi
 
 BROADCAST_LOG="$EVIDENCE_DIR/deploy-968-broadcast.log"
 note "Broadcasting deployment..."
-( cd "$CONTRACTS_DIR" && forge script "$SCRIPT" --rpc-url "$RPC_URL" --broadcast -vv ) 2>&1 | tee "$BROADCAST_LOG" >/dev/null
+run_logged "$BROADCAST_LOG" "$CONTRACTS_DIR" forge script "$SCRIPT" --rpc-url "$RPC_URL" --broadcast -vv
 
 [ -f "$BROADCAST_ART" ] || fail "broadcast artifact not found at $BROADCAST_ART"
 
