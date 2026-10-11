@@ -1,3 +1,4 @@
+import { isValidDiscoveryRow, isValidEventRow } from "./validate";
 import type { Address, Hex } from "viem";
 import {
   eventId,
@@ -73,9 +74,12 @@ export function createHttpIndexerAdapter(options: HttpIndexerOptions): Agreement
         `${root}/agreements?participant=${participant.toLowerCase()}`,
         timeoutMs,
       );
-      if (!wire) return [];
+      // A misconfigured or hostile indexer must not be able to crash the UI or
+      // inject another chain's agreements. Everything is validated before use and
+      // anything malformed is dropped rather than partially trusted.
+      if (!Array.isArray(wire)) return [];
       return wire
-        .filter((row) => /^\d+$/.test(row.id))
+        .filter((row): row is WireDiscovery => isValidDiscoveryRow(row))
         .map((row) => ({
           id: BigInt(row.id),
           buyer: row.buyer as Address,
@@ -89,10 +93,11 @@ export function createHttpIndexerAdapter(options: HttpIndexerOptions): Agreement
         `${root}/agreements/${agreementId.toString()}/events`,
         timeoutMs,
       );
-      if (!wire) return [];
+      if (!Array.isArray(wire)) return [];
       return wire
         .filter(
-          (row) =>
+          (row): row is WireEvent & { chainId: number; contractAddress: string; blockNumber: string } =>
+            isValidEventRow(row) &&
             row.chainId === chainId &&
             row.contractAddress.toLowerCase() === contractAddress.toLowerCase(),
         )
