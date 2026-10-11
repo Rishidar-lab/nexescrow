@@ -148,6 +148,27 @@ def write_json(path: str, payload) -> None:
         handle.write("\n")
 
 
+def expected_dispute_split(amount: int, fee_bps: int, buyer_bps: int) -> dict:
+    """Expected outcome of `resolveDispute` for one milestone, mirroring
+    `NexusEscrow.resolveDispute`.
+
+    `fee_bps` MUST be the fee rate snapshotted on the agreement being checked.
+    The contract snapshots `protocolFeeBps` into each agreement at creation time,
+    so two agreements can legitimately carry different rates — and computing one
+    agreement's dispute with the other's rate silently reports a valid deployment
+    as broken.
+    """
+    buyer_amount = amount * buyer_bps // 10_000
+    seller_gross = amount - buyer_amount
+    fee = seller_gross * fee_bps // 10_000
+    return {
+        "buyerAmount": buyer_amount,
+        "sellerGross": seller_gross,
+        "fee": fee,
+        "sellerAmount": seller_gross - fee,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rpc-url", default=os.environ.get("BOT_968_RPC_URL", "https://rpc.bohr.life"))
@@ -375,10 +396,14 @@ def main() -> int:
           len(dispute_raised_b) == 1 and dispute_raised_b[0]["topics"][3].lower().endswith(seller[2:].lower()),
           f"raisedBy topic {dispute_raised_b[0]['topics'][3] if dispute_raised_b else None}")
     dr = dispute_resolved_b[0] if dispute_resolved_b else None
-    expected_buyer = b_amount * 6000 // 10_000
-    expected_gross = b_amount - expected_buyer
-    expected_fee = expected_gross * a["feeBps"] // 10_000
-    expected_seller = expected_gross - expected_fee
+    # Agreement B's fee must use B's own snapshotted feeBps. Agreement A's rate is
+    # irrelevant here: feeBps is snapshotted per agreement at creation time, so a
+    # protocol-fee change between the two creations makes A's rate wrong for B.
+    # Regression-pinned by tests/test_validate_bot_968.py.
+    split = expected_dispute_split(b_amount, b["feeBps"], 6000)
+    expected_buyer = split["buyerAmount"]
+    expected_fee = split["fee"]
+    expected_seller = split["sellerAmount"]
     check("B one DisputeResolved", len(dispute_resolved_b) == 1, f"{dispute_resolved_b}")
     if dr:
         check("B dispute buyerAmount matches floor(bps)", dr["buyerAmount"] == expected_buyer,

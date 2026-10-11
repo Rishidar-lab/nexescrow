@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22.6.0"
           cache: pnpm
           cache-dependency-path: contracts/pnpm-lock.yaml
 
@@ -62,7 +62,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22.6.0"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -100,7 +100,13 @@ jobs:
     name: Scripts
     runs-on: ubuntu-latest
     steps:
+      # This job only runs syntax checks; it performs no authenticated git
+      # operation, so the read-only GITHUB_TOKEN has no reason to be written
+      # into .git/config. Disabling persistence means a compromised dependency
+      # installed below (pyyaml comes from PyPI) cannot read the token.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -117,6 +123,9 @@ jobs:
 
       - name: Shell syntax
         run: bash -n scripts/deploy-bot-968.sh
+
+      - name: Validator unit tests (dispute fee arithmetic)
+        run: python3 -m unittest discover -s tests
 
       - name: Evidence JSON is well-formed
         run: jq -e . docs/evidence/bot-rpc-capability.json docs/evidence/bot-968/deployment.json docs/evidence/bot-968/events.json > /dev/null
