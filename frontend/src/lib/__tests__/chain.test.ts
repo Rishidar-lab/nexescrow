@@ -36,7 +36,7 @@ function resolve(env: Record<string, string | undefined>): Resolution {
     `offered: m.supportedChains.map((c) => c.id),` +
     `}));`;
 
-  const out = execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "-e", script], {
+  const out = execFileSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--input-type=module", "-e", script], {
     env: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,

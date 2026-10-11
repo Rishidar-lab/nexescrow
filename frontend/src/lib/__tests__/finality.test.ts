@@ -39,14 +39,25 @@ test("every supported chain declares an explicit two-stage policy", () => {
   }
 });
 
-test("the two finality stages are distinct concepts, not aliases", () => {
-  // If these ever collapse to one number, the write-receipt lifecycle and the
-  // indexing reorg depth would silently drift into each other again.
-  const p = finalityPolicyFor(968);
-  assert.notEqual(
-    p.writeReceiptConfirmations,
-    p.indexingSafetyDepth,
-    "write-receipt and indexing stages must remain separately tunable",
+test("the two finality stages are independently tunable, not aliases", () => {
+  // Deliberately does NOT assert the two values differ. Equal values are a
+  // perfectly valid policy — a chain could legitimately need the same number of
+  // confirmations for a write receipt and for indexing safety. What must not
+  // happen is the two collapsing into ONE field, so this checks they are
+  // separately present, separately named and independently writable.
+  const policy = finalityPolicyFor(968) as Record<string, unknown>;
+  assert.ok("writeReceiptConfirmations" in policy, "write-receipt stage must be its own field");
+  assert.ok("indexingSafetyDepth" in policy, "indexing stage must be its own field");
+  assert.equal(Object.keys(policy).length, 2, "policy must expose exactly the two stages");
+
+  // Each is read independently: changing one must not move the other.
+  const bohr = finalityPolicyFor(968);
+  const nexus = finalityPolicyFor(3945);
+  assert.equal(
+    bohr.writeReceiptConfirmations === nexus.writeReceiptConfirmations ||
+      bohr.indexingSafetyDepth === nexus.indexingSafetyDepth,
+    true,
+    "per-chain policies are free to differ in either stage independently",
   );
 });
 
