@@ -1,0 +1,97 @@
+# Slither full findings — independent re-execution
+#
+# WHY THIS FILE EXISTS
+# docs/evidence/slither.txt records a run whose header states
+#   "analyzed (11 contracts with 101 detectors), 8 result(s) found"
+# but that capture contains only Slither's INFO detector-enumeration lines.
+# All 8 finding bodies were absent, so an external reviewer could not triage them.
+# The original file is left byte-for-byte untouched as the record of that run.
+# This file is the full raw output of an independent re-execution.
+#
+# PROVENANCE
+# repo commit : 811afd53c78e4bad76d2a0fb019e6e3dacdde5bd
+# slither     : 0.11.5    solc: 0.8.26 (contracts/foundry.toml)
+# scope       : src/ only; --filter-paths 'node_modules|test'
+# contract src: byte-identical to the deployed testnet bytecode (see deployment.json bytecodeHash)
+# no source file was modified to produce this output
+# slither exits 255 when findings exist; that is expected and not a tool failure
+#
+UTC_START=2026-10-11T00:52:28Z
+$ cd contracts && slither . --filter-paths 'node_modules|test'
+INFO:Detectors:
+Detector: uninitialized-local
+NexusEscrow.createAgreement(address,address,address,uint128[],uint40).total (src/NexusEscrow.sol#195) is a local variable never initialized
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+INFO:Detectors:
+Detector: timestamp
+NexusEscrow._checkBuyer(uint256) (src/NexusEscrow.sol#160-162) uses timestamp for comparisons
+	Dangerous comparisons:
+	- msg.sender != agreements[id].buyer (src/NexusEscrow.sol#161)
+NexusEscrow._checkArbiter(uint256) (src/NexusEscrow.sol#164-166) uses timestamp for comparisons
+	Dangerous comparisons:
+	- msg.sender != agreements[id].arbiter (src/NexusEscrow.sol#165)
+NexusEscrow.createAgreement(address,address,address,uint128[],uint40) (src/NexusEscrow.sol#178-240) uses timestamp for comparisons
+	Dangerous comparisons:
+	- fundingDeadline != 0 && fundingDeadline <= block.timestamp (src/NexusEscrow.sol#205)
+NexusEscrow.fund(uint256) (src/NexusEscrow.sol#243-266) uses timestamp for comparisons
+	Dangerous comparisons:
+	- a.fundingDeadline != 0 && block.timestamp > a.fundingDeadline (src/NexusEscrow.sol#246)
+NexusEscrow.cancelBeforeFunding(uint256) (src/NexusEscrow.sol#340-350) uses timestamp for comparisons
+	Dangerous comparisons:
+	- deadlinePassed = a.fundingDeadline != 0 && block.timestamp > a.fundingDeadline (src/NexusEscrow.sol#345)
+	- ! isParty && ! deadlinePassed (src/NexusEscrow.sol#346)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: low-level-calls
+Low level call in NexusEscrow._payOut(address,address,uint256) (src/NexusEscrow.sol#413-421):
+	- (ok,None) = address(to).call{value: amount}() (src/NexusEscrow.sol#416)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Detectors:
+Detector: unindexed-event-address
+Event NexusEscrow.FeeRecipientUpdated(address,address) (src/NexusEscrow.sol#114) has address parameters but no indexed parameters
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unindexed-event-address-parameters
+INFO:Slither:. analyzed (11 contracts with 101 detectors), 8 result(s) found
+UTC_END=2026-10-11T00:55:28Z
+
+=========================================================
+ANALYST TRIAGE OF THE 8 FINDINGS ABOVE
+(interpretation, added 2026-10-11 — not raw tool output)
+=========================================================
+
+NO finding is CRITICAL or HIGH. Breakdown:
+
+#1  uninitialized-local  src/NexusEscrow.sol:195  -> FALSE POSITIVE
+    `uint256 total;` is the milestone-sum accumulator in createAgreement; it is
+    `total += amount` in the loop. Solidity zero-initializes locals. No defect.
+
+#2-#5  timestamp  x4  -> 2 REAL (informational), 2 FALSE POSITIVE
+    REAL: createAgreement:205, fund:246, cancelBeforeFunding:345-346.
+      These are the funding-deadline comparisons. A validator can shift
+      block.timestamp by a few seconds. Impact is bounded: the deadline is a
+      cancellation convenience while AwaitingFunding, never a fund-safety
+      boundary, and no funds are at risk from a few seconds of drift.
+      Documented in docs/THREAT_MODEL.md.
+    FALSE POSITIVE: _checkBuyer:161, _checkArbiter:165. These lines contain no
+      timestamp comparison at all — Slither misparsed `msg.sender !=` as a
+      time comparison. No code change warranted.
+
+#6  low-level-calls  _payOut:416  -> ACCEPTED DESIGN
+    The native `.call{value:}` is deliberate: it is the only way to pay a
+    contract seller, and it reverts on failure (NativeTransferFailed) so state
+    is never left half-applied. The caller is nonReentrant and all effects
+    (milestone status, cursor, fee accrual) precede the transfer. Checked by
+    test_ApproveMilestone_RevertsWhen_SellerRejectsNative and
+    test_ResolveDispute_RevertsWhen_RejectingSellerIsDueFunds.
+
+#7-#8  unindexed-event-address  FeeRecipientUpdated:114  -> INFORMATIONAL
+    Cosmetic. `ProtocolFeeUpdated` and `FeeRecipientUpdated` are admin-only,
+    low-volume events that are not queried by topic in any indexed path.
+    No security impact.
+
+GAPS A REVIEWER SHOULD STILL WEIGH (not Slither findings):
+  - script/DeployNexusEscrow.s.sol and script/DeployNexusEscrowBOT.s.sol have
+    0% test coverage (forge coverage --report summary). This includes the
+    ALLOW_MAINNET_DEPLOYMENT mainnet guard and the chain-968-only require().
+    The mainnet safety guard is therefore UNPROVEN by automated tests.
+  - The frontend has no automated test runner; chain-safety and finality are
+    two bespoke node scripts executed by CI.
