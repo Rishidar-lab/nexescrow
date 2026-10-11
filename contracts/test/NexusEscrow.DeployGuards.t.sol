@@ -192,6 +192,12 @@ contract NexusEscrowDeployPolicyTest is Test {
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerKey));
         vm.setEnv("ESCROW_OWNER", vm.toString(deployer));
         vm.setEnv("ESCROW_FEE_RECIPIENT", vm.toString(deployer));
+        // Pinned explicitly rather than left absent. Left absent, these tests
+        // inherit whatever the operator's shell exported, and
+        // `ALLOW_MAINNET_DEPLOYMENT=true forge test` makes the mainnet-refusal
+        // test fail — a guard test silently disabled by the ambient
+        // environment, which is the worst failure mode this suite can have.
+        vm.setEnv("ALLOW_MAINNET_DEPLOYMENT", "false");
     }
 
     function _runOnBotTestnet() internal returns (NexusEscrow) {
@@ -253,5 +259,76 @@ contract NexusEscrowDeployPolicyTest is Test {
         milestones[0] = 1 ether;
 
         assertEq(deployed.createAgreement(seller, arbiter, address(0), milestones, 0), 0);
+    }
+
+    // ---------------------------------------------------------------------
+    // Unknown agreement ids
+    // ---------------------------------------------------------------------
+
+    /// @dev `agreements[id]` on an unknown id returns a zeroed struct, so
+    ///      `buyer` is address(0). These pin which error each entry point
+    ///      actually raises, because the threat model documents them and a
+    ///      modifier runs before the function body — so an entry point guarded
+    ///      by `onlyBuyerOf` reverts `NotBuyer`, never `WrongState`.
+    ///      See docs/THREAT_MODEL.md §4 "No existence check".
+    function test_UnknownId_RevertPerEntryPoint() public {
+        uint256 unknown = 999_999;
+        address caller = makeAddr("unknownIdCaller");
+
+        // Deploy once, outside any expectRevert scope: `vm.expectRevert`
+        // attaches to the *next* call, and a deployment issues calls of its own.
+        NexusEscrow e = _deployed();
+
+        vm.prank(caller);
+        vm.expectRevert(NexusEscrow.NotBuyer.selector);
+        e.fund{ value: 0 }(unknown);
+
+        vm.prank(caller);
+        vm.expectRevert(NexusEscrow.NotBuyer.selector);
+        e.approveMilestone(unknown);
+
+        // raiseDispute has no onlyBuyerOf, so the body runs and the status
+        // check fires first: WrongState.
+        vm.prank(caller);
+        vm.expectRevert(NexusEscrow.WrongState.selector);
+        e.raiseDispute(unknown);
+
+        // A zeroed agreement is AwaitingFunding, so the body passes the status
+        // check and fails on party/deadline instead.
+        vm.expectRevert(NexusEscrow.NotAuthorized.selector);
+        e.cancelBeforeFunding(unknown);
+
+        assertTrue(caller != address(0));
+    }
+
+    /// @dev The zeroed struct must not be mistakable for a real agreement.
+    function test_UnknownId_ReadsReturnZeroedStructNotARealAgreement() public {
+        uint256 unknown = 999_999;
+        NexusEscrow e = _deployed();
+
+        // `agreements` is a public mapping, so it yields the 11-field struct as a
+        // tuple. Solidity requires all 11 components to be listed, so the fields
+        // this test does not assert on are left unnamed and skipped positionally.
+        // Order: buyer, seller, arbiter, token, totalAmount, feeBps, status,
+        // createdAt, fundingDeadline, milestoneCount, nextMilestone.
+        (
+            address buyer,
+            address seller,,,
+            uint128 totalAmount,,
+            NexusEscrow.AgreementStatus status,,,,
+        ) = e.agreements(unknown);
+
+        assertEq(buyer, address(0), "an unknown id must not resolve to a real buyer");
+        assertEq(seller, address(0));
+        assertEq(totalAmount, 0);
+        assertEq(uint8(status), uint8(NexusEscrow.AgreementStatus.AwaitingFunding));
+        assertEq(e.getMilestones(unknown).length, 0);
+    }
+
+    /// @dev Deploys on 968 through the generic script. Named with a leading
+    ///      underscore so it cannot collide with the `deployed` locals used by
+    ///      the wiring tests above.
+    function _deployed() internal returns (NexusEscrow) {
+        return _runOnBotTestnet();
     }
 }
