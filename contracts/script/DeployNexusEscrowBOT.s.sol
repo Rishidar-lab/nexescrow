@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import { Script, console2 } from "forge-std/Script.sol";
 import { NexusEscrow } from "../src/NexusEscrow.sol";
+import { DeployPolicy } from "./DeployPolicy.sol";
 
 /// @notice Deploys NexusEscrow to BOT Chain Bohr testnet ONLY (chain id 968).
 ///
@@ -14,13 +15,11 @@ import { NexusEscrow } from "../src/NexusEscrow.sol";
 ///   forge script script/DeployNexusEscrowBOT.s.sol:DeployNexusEscrowBOT \
 ///     --rpc-url bot_testnet --broadcast -vvvv
 contract DeployNexusEscrowBOT is Script {
-    uint256 internal constant BOT_TESTNET_CHAIN_ID = 968;
-
     function run() external returns (NexusEscrow escrow) {
-        require(
-            block.chainid == BOT_TESTNET_CHAIN_ID,
-            "DeployNexusEscrowBOT: chain id must be 968 (BOT Chain Bohr testnet); aborting"
-        );
+        // Chain 968 and nothing else. Deliberately ignores any
+        // ALLOW_MAINNET_DEPLOYMENT opt-in — refusing mainnet is this script's
+        // entire reason for existing.
+        DeployPolicy.requireBotTestnetOnly(block.chainid);
 
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
@@ -28,9 +27,10 @@ contract DeployNexusEscrowBOT is Script {
 
         address owner = vm.envOr("ESCROW_OWNER", deployer);
         address feeRecipient = vm.envOr("ESCROW_FEE_RECIPIENT", deployer);
-        require(owner != address(0), "DeployNexusEscrowBOT: ESCROW_OWNER resolves to zero");
-        require(
-            feeRecipient != address(0),
+        DeployPolicy.requireNonZero(
+            owner,
+            feeRecipient,
+            "DeployNexusEscrowBOT: ESCROW_OWNER resolves to zero",
             "DeployNexusEscrowBOT: ESCROW_FEE_RECIPIENT resolves to zero"
         );
 
