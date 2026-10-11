@@ -1,7 +1,9 @@
 # BOT Chain Integration Dossier
 
 > Prepared for BOT Chain engineering review. Date: 2026-10-08 (UTC).
-> Status: **unaudited, not production ready, not deployed to BOT Chain.**
+> Status: **unaudited, not production ready.** One Bohr **testnet** (968) instance
+> is deployed and validated — see §15 and §16. **BOT Chain mainnet (677) has NOT
+> been deployed**, and no mainnet transaction has ever been broadcast.
 > This document contains no claims of adoption, users, TVL, audits, or production use.
 
 ---

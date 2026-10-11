@@ -275,9 +275,16 @@ Notation: R = state read, W = state write, X = external call, $ = asset movement
 
 **No existence check:** an unknown `id` returns a zeroed `Agreement` (status numerically
 `AwaitingFunding`) and an empty milestone array. Every state-changing path still rejects
-it (`NotBuyer` for `fund`, `WrongState` for `approveMilestone`/`raiseDispute`,
-`NotAuthorized` for `cancelBeforeFunding`), but integrators MUST track
+it, but the error depends on whether the entry point is guarded by a modifier, because
+modifiers run before the body: `NotBuyer` for `fund`/`approveMilestone` (both carry
+`onlyBuyerOf`), `WrongState` for `raiseDispute` (no buyer guard; the body status check
+fires first), and `NotAuthorized` for `cancelBeforeFunding` (a zeroed agreement passes
+the `AwaitingFunding` status check, then fails on party/deadline). Integrators MUST track
 `id < nextAgreementId()` and not treat zeroed structs as real agreements.
+
+Regression-pinned by `test_UnknownId_RevertPerEntryPoint` and
+`test_UnknownId_ReadsReturnZeroedStructNotARealAgreement` in
+`test/NexusEscrow.DeployGuards.t.sol`.
 
 ---
 
