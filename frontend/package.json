@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --test --experimental-strip-types --no-warnings \"src/lib/__tests__/*.test.ts\"",
     "check:chain-safety": "node --experimental-strip-types --no-warnings scripts/check-chain-safety.mjs",
     "check:finality-policy": "node --experimental-strip-types --no-warnings scripts/check-finality-policy.mjs"
   },

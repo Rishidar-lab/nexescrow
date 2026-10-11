@@ -90,6 +90,9 @@ jobs:
       - name: Finality policy — unconfirmed deployment stays pending
         run: pnpm check:finality-policy
 
+      - name: Unit tests — chain resolution and finality policy
+        run: pnpm test
+
       - name: Build
         run: pnpm build
 
