@@ -51,10 +51,12 @@ export function useAgreement(id: bigint) {
     agreement,
     milestones,
     isLoading: agreementResult.isLoading || milestonesResult.isLoading,
-    refetch: () => {
-      agreementResult.refetch();
-      milestonesResult.refetch();
-    },
+    refetch: () =>
+      // Both queries are awaited together. Returning them unawaited would let a
+      // caller believe reconciliation had finished while the agreement and its
+      // milestones were still stale, which is exactly the window in which the UI
+      // can render the pre-transaction state as if the write had landed.
+      Promise.all([agreementResult.refetch(), milestonesResult.refetch()]),
   };
 }
 
