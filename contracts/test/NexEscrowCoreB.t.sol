@@ -165,14 +165,14 @@ contract NexEscrowCoreBTest is Test {
         core.fund{ value: 1 ether }(id, amounts, p);
     }
 
-    function test_Fund_RevertsAppealNotSupported() public {
+    function test_Fund_RevertsAppealWindowWithoutAppellateResolver() public {
         NexEscrowCore.ResolutionPolicy memory p = _policy();
-        p.appealWindow = 1 days; // tranche C territory
+        p.appealWindow = 1 days; // a non-zero appeal window requires an appellate resolver
         uint128[] memory amounts = _one(1 ether);
         NexEscrowCore.AgreementIntent memory intent = _intent(amounts, p, NATIVE, buyer, seller);
         uint256 id = _activate(intent, BUYER_PK, SELLER_PK);
         vm.prank(buyer);
-        vm.expectRevert(NexEscrowCore.AppealNotSupportedYet.selector);
+        vm.expectRevert(NexEscrowCore.InvalidPolicy.selector);
         core.fund{ value: 1 ether }(id, amounts, p);
     }
 

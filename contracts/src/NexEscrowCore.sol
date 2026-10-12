@@ -16,9 +16,11 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 ///        evidence/ruling windows, a deterministic pre-committed timeout split that
 ///        ANYONE can finalize once the ruling deadline passes, and conservation with no
 ///        path that pays the resolver.
-///      Still deferred: the pluggable `IResolver`/quorum, on-chain evidence-hash events,
-///      the appellate path (§5-6, tranche C), bilateral migration (§9, tranche D) and the
-///      x402/AP2/ERC-8004 adapters (§8, tranche E). This kernel takes NO protocol fee, so
+///      - C (§5-6): dispute authority via a committed resolver address (push model;
+///        QuorumResolver is a reference M-of-N IResolver module), on-chain evidence-hash
+///        events, and an explicit optional appellate path.
+///      Still deferred: bilateral migration (§9, D), x402/AP2/ERC-8004 adapters (§8, E) and
+///      the production indexer (§10, F). This kernel takes NO protocol fee, so
 ///      every unit funded is eventually withdrawable by the buyer or the seller only.
 ///      Payouts are PULL, not push: settlement credits `pendingWithdrawals` and a separate
 ///      `withdraw` moves funds, so a hostile recipient can never block finalization and no
@@ -83,14 +85,25 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         uint40 disputedAt; // timestamp the dispute was raised; 0 otherwise
     }
 
+    /// @notice Primary-ruling + appeal state for a disputed milestone (tranche C). Only
+    ///         written when the policy's `appealWindow > 0`; with `appealWindow == 0` a
+    ///         ruling finalizes immediately and this is never touched.
+    struct Ruling {
+        bool ruled; // the primary resolver has proposed a split
+        uint16 proposedBuyerBps; // the proposed buyer share (contestable within appealWindow)
+        uint40 ruledAt; // when the primary ruling was proposed
+        bool appealed; // a party has appealed the proposed ruling
+        uint40 appealedAt; // when the appeal was filed
+    }
+
     /// @notice Immutable per-agreement dispute policy, committed in the signed intent
     ///         (`resolutionPolicyHash`) and revealed at funding (whitepaper §4.2).
     struct ResolutionPolicy {
         address primaryResolver;
-        address appellateResolver; // tranche C — MUST be address(0) here
+        address appellateResolver; // required iff appealWindow > 0, else address(0)
         uint40 evidenceWindow; // seconds for evidence after a dispute (may be 0)
         uint40 rulingWindow; // seconds the resolver has to rule after evidence (> 0)
-        uint40 appealWindow; // tranche C — MUST be 0 here
+        uint40 appealWindow; // 0 = ruling is immediate; > 0 = appeal allowed
         uint16 timeoutBuyerBps; // deterministic buyer share if the ruling deadline lapses
         bytes32 policyHash; // commitment to an off-chain policy document
     }
@@ -124,6 +137,8 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     mapping(uint256 => uint256) public escrowedOf;
     /// @dev account => asset => amount withdrawable (pull payments).
     mapping(address => mapping(address => uint256)) public pendingWithdrawals;
+    /// @dev id => milestone index => primary-ruling/appeal state (tranche C).
+    mapping(uint256 => mapping(uint256 => Ruling)) internal _ruling;
 
     // =====================================================================
     // Events
@@ -157,6 +172,24 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     );
     event AgreementCompleted(uint256 indexed id);
     event Withdrawal(address indexed account, address indexed asset, uint256 amount);
+    event EvidenceSubmitted(
+        uint256 indexed id,
+        uint256 indexed index,
+        address indexed party,
+        bytes32 evidenceHash,
+        string evidenceURI
+    );
+    event MilestoneRulingProposed(
+        uint256 indexed id, uint256 indexed index, uint16 buyerBps, uint256 appealDeadline
+    );
+    event MilestoneAppealed(uint256 indexed id, uint256 indexed index, address indexed by);
+    event MilestoneFinalRuled(
+        uint256 indexed id,
+        uint256 indexed index,
+        uint16 buyerBps,
+        uint128 buyerAmount,
+        uint128 sellerAmount
+    );
 
     // =====================================================================
     // Errors
@@ -185,7 +218,6 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     error InvalidMilestoneCount();
     error MilestoneSumMismatch();
     error InvalidPolicy();
-    error AppealNotSupportedYet();
     error WrongMilestone();
     error WrongMilestoneState();
     error TooEarlyToRule();
@@ -194,6 +226,13 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     error BpsOutOfRange();
     error NothingToWithdraw();
     error NativeTransferFailed();
+    error AlreadyRuled();
+    error NoRulingToAppeal();
+    error AlreadyAppealed();
+    error AppealWindowClosed();
+    error NotAppealed();
+    error NoRulingToFinalize();
+    error NotFinalizableYet();
 
     constructor() EIP712("NexEscrowCore", "1") { }
 
@@ -393,24 +432,41 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         emit MilestoneDisputed(id, index, msg.sender);
     }
 
-    /// @notice The committed primary resolver rules a disputed milestone during the
-    ///         ruling window. The core only ever learns a `buyerBps`; payouts go to the
-    ///         buyer and seller only — never the resolver (whitepaper §4.2 rule 4).
+    /// @notice The committed primary resolver rules a disputed milestone during the ruling
+    ///         window. With `appealWindow == 0` the ruling finalizes immediately; with
+    ///         `appealWindow > 0` it is recorded as a proposed ruling a party may `appeal`,
+    ///         and otherwise finalizes via `finalizeRuling` after the window. The core only
+    ///         ever learns a `buyerBps`; payouts reach buyer/seller only, never the resolver
+    ///         (whitepaper §4.2 rule 4).
     function rule(uint256 id, uint256 index, uint16 buyerBps) external nonReentrant {
-        Agreement storage a = agreements[id];
-        if (a.status != AgreementStatus.Funded) revert NotFunded();
-        if (msg.sender != resolutionPolicyOf[id].primaryResolver) revert NotResolver();
+        ResolutionPolicy storage p = resolutionPolicyOf[id];
+        if (agreements[id].status != AgreementStatus.Funded) revert NotFunded();
+        if (msg.sender != p.primaryResolver) revert NotResolver();
         if (buyerBps > BPS_DENOMINATOR) revert BpsOutOfRange();
         Milestone storage m = _requireCurrentDisputed(id, index);
+        if (_ruling[id][index].ruled) revert AlreadyRuled();
 
         (uint256 evidenceDeadline, uint256 rulingDeadline) = _deadlines(id, m.disputedAt);
         if (block.timestamp < evidenceDeadline) revert TooEarlyToRule();
         if (block.timestamp >= rulingDeadline) revert RulingWindowClosed();
 
-        (uint128 buyerAmount, uint128 sellerAmount) = _split(m.amount, buyerBps);
-        _payoutAndAdvance(id, index, m.amount, buyerAmount, sellerAmount, MilestoneStatus.Resolved);
-        emit MilestoneRuled(id, index, buyerBps, buyerAmount, sellerAmount);
-        _completeIfLast(id);
+        if (p.appealWindow == 0) {
+            (uint128 buyerAmount, uint128 sellerAmount) = _split(m.amount, buyerBps);
+            _payoutAndAdvance(
+                id, index, m.amount, buyerAmount, sellerAmount, MilestoneStatus.Resolved
+            );
+            emit MilestoneRuled(id, index, buyerBps, buyerAmount, sellerAmount);
+            _completeIfLast(id);
+        } else {
+            _ruling[id][index] = Ruling({
+                ruled: true,
+                proposedBuyerBps: buyerBps,
+                ruledAt: uint40(block.timestamp),
+                appealed: false,
+                appealedAt: 0
+            });
+            emit MilestoneRulingProposed(id, index, buyerBps, block.timestamp + p.appealWindow);
+        }
     }
 
     /// @notice Finalize a disputed milestone with the pre-committed timeout split once the
@@ -422,6 +478,10 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         Agreement storage a = agreements[id];
         if (a.status != AgreementStatus.Funded) revert NotFunded();
         Milestone storage m = _requireCurrentDisputed(id, index);
+        // Timeout is only the "resolver never ruled" fallback. If a ruling was proposed it
+        // finalizes through finalizeRuling / the appeal path instead, so the committed
+        // timeout split never overrides a real ruling.
+        if (_ruling[id][index].ruled) revert AlreadyRuled();
 
         (, uint256 rulingDeadline) = _deadlines(id, m.disputedAt);
         if (block.timestamp < rulingDeadline) revert NotTimeoutEligible();
@@ -430,6 +490,87 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         (uint128 buyerAmount, uint128 sellerAmount) = _split(m.amount, timeoutBuyerBps);
         _payoutAndAdvance(id, index, m.amount, buyerAmount, sellerAmount, MilestoneStatus.Resolved);
         emit MilestoneTimedOut(id, index, timeoutBuyerBps, buyerAmount, sellerAmount);
+        _completeIfLast(id);
+    }
+
+    // =====================================================================
+    // Tranche C — evidence, resolver appeal path
+    // =====================================================================
+
+    /// @notice Anchor an evidence hash (and optional URI) for the current disputed
+    ///         milestone. The core verifies integrity, not truth (whitepaper §6): the hash
+    ///         commits to exact off-chain bytes; nothing but the event is kept on-chain.
+    function submitEvidence(
+        uint256 id,
+        uint256 index,
+        bytes32 evidenceHash,
+        string calldata evidenceURI
+    ) external {
+        Agreement storage a = agreements[id];
+        if (a.status != AgreementStatus.Funded) revert NotFunded();
+        if (msg.sender != a.buyer && msg.sender != a.seller) revert NotParty();
+        _requireCurrentDisputed(id, index);
+        emit EvidenceSubmitted(id, index, msg.sender, evidenceHash, evidenceURI);
+    }
+
+    /// @notice A party contests a proposed primary ruling within the appeal window,
+    ///         escalating to the committed appellate resolver (whitepaper §5.3).
+    function appeal(uint256 id, uint256 index) external {
+        Agreement storage a = agreements[id];
+        if (a.status != AgreementStatus.Funded) revert NotFunded();
+        if (msg.sender != a.buyer && msg.sender != a.seller) revert NotParty();
+        _requireCurrentDisputed(id, index);
+        Ruling storage r = _ruling[id][index];
+        if (!r.ruled) revert NoRulingToAppeal();
+        if (r.appealed) revert AlreadyAppealed();
+        if (block.timestamp > uint256(r.ruledAt) + resolutionPolicyOf[id].appealWindow) {
+            revert AppealWindowClosed();
+        }
+        r.appealed = true;
+        r.appealedAt = uint40(block.timestamp);
+        emit MilestoneAppealed(id, index, msg.sender);
+    }
+
+    /// @notice The committed appellate resolver issues the final ruling after an appeal,
+    ///         within one `rulingWindow` of the appeal. It overrides the primary ruling.
+    function finalRule(uint256 id, uint256 index, uint16 buyerBps) external nonReentrant {
+        ResolutionPolicy storage p = resolutionPolicyOf[id];
+        if (agreements[id].status != AgreementStatus.Funded) revert NotFunded();
+        if (msg.sender != p.appellateResolver) revert NotResolver();
+        if (buyerBps > BPS_DENOMINATOR) revert BpsOutOfRange();
+        Milestone storage m = _requireCurrentDisputed(id, index);
+        Ruling storage r = _ruling[id][index];
+        if (!r.appealed) revert NotAppealed();
+        if (block.timestamp > uint256(r.appealedAt) + p.rulingWindow) revert RulingWindowClosed();
+
+        (uint128 buyerAmount, uint128 sellerAmount) = _split(m.amount, buyerBps);
+        _payoutAndAdvance(id, index, m.amount, buyerAmount, sellerAmount, MilestoneStatus.Resolved);
+        emit MilestoneFinalRuled(id, index, buyerBps, buyerAmount, sellerAmount);
+        _completeIfLast(id);
+    }
+
+    /// @notice Finalize a proposed primary ruling once it can no longer be contested (the
+    ///         appeal window passed with no appeal) or the appellate resolver has lapsed.
+    ///         Callable by ANYONE, so a stalled appeal can never freeze the milestone
+    ///         (whitepaper §4 rule 1): a lapsed appeal leaves the primary ruling standing.
+    function finalizeRuling(uint256 id, uint256 index) external nonReentrant {
+        if (agreements[id].status != AgreementStatus.Funded) revert NotFunded();
+        Milestone storage m = _requireCurrentDisputed(id, index);
+        Ruling storage r = _ruling[id][index];
+        if (!r.ruled) revert NoRulingToFinalize();
+        ResolutionPolicy storage p = resolutionPolicyOf[id];
+
+        if (!r.appealed) {
+            if (block.timestamp <= uint256(r.ruledAt) + p.appealWindow) revert NotFinalizableYet();
+        } else {
+            if (block.timestamp <= uint256(r.appealedAt) + p.rulingWindow) {
+                revert NotFinalizableYet();
+            }
+        }
+
+        (uint128 buyerAmount, uint128 sellerAmount) = _split(m.amount, r.proposedBuyerBps);
+        _payoutAndAdvance(id, index, m.amount, buyerAmount, sellerAmount, MilestoneStatus.Resolved);
+        emit MilestoneRuled(id, index, r.proposedBuyerBps, buyerAmount, sellerAmount);
         _completeIfLast(id);
     }
 
@@ -483,11 +624,6 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         internal
         pure
     {
-        // Appeal is tranche C: reject any policy that asks for it so we never silently
-        // accept an unenforceable appellate path.
-        if (p.appellateResolver != address(0) || p.appealWindow != 0) {
-            revert AppealNotSupportedYet();
-        }
         if (
             p.primaryResolver == address(0) || p.primaryResolver == buyer
                 || p.primaryResolver == seller
@@ -498,6 +634,20 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
             revert InvalidPolicy();
         }
         if (p.timeoutBuyerBps > BPS_DENOMINATOR) revert InvalidPolicy();
+        // Appeal is optional (whitepaper §5.3): appealWindow == 0 means no appeal and no
+        // appellate resolver; a non-zero window requires a distinct, independent appellate
+        // resolver.
+        if (p.appealWindow == 0) {
+            if (p.appellateResolver != address(0)) revert InvalidPolicy();
+        } else {
+            if (p.appealWindow > MAX_WINDOW) revert InvalidPolicy();
+            if (
+                p.appellateResolver == address(0) || p.appellateResolver == buyer
+                    || p.appellateResolver == seller || p.appellateResolver == p.primaryResolver
+            ) {
+                revert InvalidPolicy();
+            }
+        }
     }
 
     function _requireCurrentPending(uint256 id, uint256 index)
