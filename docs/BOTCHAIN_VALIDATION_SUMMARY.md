@@ -85,8 +85,8 @@ principal loss       0 wei
 
 ## Tests
 
-- Foundry: **112 tests, 0 failures** (7 suites: lifecycle, disputes, admin,
-  authorization, token-edge, security/fuzz, stateful invariants).
+- Foundry: **130 tests, 0 failures** (8 suites: lifecycle, disputes, admin,
+  authorization, deploy guards, token-edge, security/fuzz, stateful invariants).
 - Coverage (`forge coverage --ir-minimum`): **98.56% lines / 98.37% statements /
   97.44% branches / 100% functions**.
 - Fuzz: 4 fuzz tests; 1,024 runs default profile, 4,096 runs CI profile.

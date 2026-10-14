@@ -32,7 +32,7 @@ Bohr (968)** with throwaway testnet keys:
 | `eth_getLogs` capability on 968 and 677 | **Verified enabled**; no hard range cap (`docs/evidence/bot-rpc-capability.md`) |
 | Deployed to BOT mainnet 677 | **NOT DONE, and explicitly out of scope** |
 | Mainnet deployment blocked by default | **Verified** (script reverts without the opt-in flag) |
-| Contract tests / invariants | **Verified** (112 tests, 0 failures) |
+| Contract tests / invariants | **Verified** (130 tests, 0 failures) |
 | Frontend lint / typecheck / build | **Verified** |
 | Independent security audit | **NOT DONE — none claimed** |
 
@@ -125,11 +125,12 @@ Raw log: `docs/evidence/mainnet-guard-677.log` (simulated chain 677, local Anvil
 Raw output: `docs/evidence/contracts-test-run.txt`.
 
 ```
-Ran 7 test suites ... 112 tests passed, 0 failed, 0 skipped (112 total tests)
+Ran 8 test suites ... 130 tests passed, 0 failed, 0 skipped (130 total tests)
 ```
 
-Suite breakdown: 33 lifecycle, 20 authorization, 19 disputes, 21 admin, 12 token-edge,
-4 security/fuzz, 3 stateful invariants (128 runs × 64 depth = 8,192 handler calls).
+Suite breakdown: 33 lifecycle, 20 authorization, 19 disputes, 21 admin, 18 deploy
+guards, 12 token-edge, 4 security/fuzz, 3 stateful invariants (128 runs × 64 depth =
+8,192 handler calls).
 
 Fuzz/invariant runs: default `1024` fuzz runs per test; invariants `128 × 64`;
 CI profile `4096` fuzz runs and `256 × 128` invariants

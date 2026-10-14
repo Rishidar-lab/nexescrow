@@ -45,8 +45,9 @@ does not change to accommodate them.
 
 - A small (≈6.3 KB runtime), dependency-light contract that settles native BOT or
   ERC-20 with no chain-specific assumptions.
-- 112 passing Foundry tests including authorization matrices, token-edge cases, and a
-  stateful invariant suite asserting solvency and state consistency.
+- 130 passing Foundry tests across 8 suites including authorization matrices, deploy
+  guards, token-edge cases, and a stateful invariant suite asserting solvency and state
+  consistency.
 - 98.6% line / 97.4% branch coverage of the contract; Slither clean at high/medium
   severity.
 - A chain-agnostic frontend with fail-closed network handling and explicit

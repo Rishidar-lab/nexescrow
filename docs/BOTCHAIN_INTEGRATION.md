@@ -145,9 +145,9 @@ Full matrix: `docs/TOKEN_AND_FUNDS_FLOW.md` §6.
   creation.
 - Exact funding (native value check; ERC-20 balance-delta check).
 - No `delegatecall`, no upgrade path, no privileged principal access.
-- 112 Foundry tests including adversarial/authorization/token-edge suites and a
-  stateful invariant suite; fuzz runs at 1,024 per test (default) and 4,096 (CI
-  profile); invariants at 128×64 (default) and 256×128 (CI).
+- 130 Foundry tests across 8 suites including adversarial/authorization/token-edge
+  suites, deploy guards, and a stateful invariant suite; fuzz runs at 1,024 per test
+  (default) and 4,096 (CI profile); invariants at 128×64 (default) and 256×128 (CI).
 
 ## 13. Known risks (disclosed)
 
@@ -164,7 +164,7 @@ Full matrix: `docs/TOKEN_AND_FUNDS_FLOW.md` §6.
 
 ## 14. Testing status
 
-- `forge test`: 112 tests, 0 failures (7 suites).
+- `forge test`: 130 tests, 0 failures (8 suites).
 - Stateful invariants: exact solvency for native and ERC-20, cursor/state consistency,
   milestone-sum, id monotonicity.
 - Coverage (foundry, `--ir-minimum`): NexusEscrow.sol **98.56% lines / 98.37%

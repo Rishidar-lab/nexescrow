@@ -49,9 +49,10 @@ assumptions. A single frontend can target Nexus or BOT Chain, testnets by defaul
   agreements keyed by incrementing ids, cursor-only milestone progression,
   `ReentrancyGuard` + checks-effects-interactions on every fund-moving function,
   `Pausable` + `Ownable2Step` for availability/fee admin only.
-- **Tests:** 112 Foundry tests (lifecycle, disputes, admin, authorization matrix,
-  token-edge cases, fuzz, and a handler-driven stateful invariant suite asserting exact
-  solvency for native and ERC-20). 98.6% line / 97.4% branch coverage of the contract.
+- **Tests:** 130 Foundry tests across 8 suites (lifecycle, disputes, admin, authorization
+  matrix, deploy guards, token-edge cases, fuzz, and a handler-driven stateful invariant
+  suite asserting exact solvency for native and ERC-20). 98.6% line / 97.4% branch
+  coverage of the contract.
 - **Static analysis:** Slither 0.11.5 reports no high/medium findings; informational
   results are documented, not suppressed.
 - **Agreement discovery:** bounded, chunked, deduped direct-RPC log scan by default,
@@ -95,7 +96,7 @@ Mainnets are configured but **opt-in only**: the deploy script refuses them unle
 ```bash
 cd contracts
 pnpm install        # OpenZeppelin Contracts
-forge test          # 112 tests; fuzz 1024 runs; invariants 128x64
+forge test          # 130 tests; fuzz 1024 runs; invariants 128x64
 forge fmt --check
 ```
 

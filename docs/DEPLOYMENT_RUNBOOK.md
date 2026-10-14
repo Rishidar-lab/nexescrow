@@ -27,7 +27,7 @@
 cd contracts
 pnpm install --frozen-lockfile
 forge build
-forge test                         # 112 tests
+forge test                         # 130 tests
 FOUNDRY_PROFILE=ci forge test      # heavier fuzz/invariant campaign
 forge fmt --check
 ```
