@@ -7,6 +7,13 @@
   The on-chain *write* arm (a fresh lifecycle run) was **not performed** — its
   precondition (funded burner testnet keys) is not met in this environment. Nothing
   about that arm was fabricated.
+- **Reconciled (UTC):** 2026-10-14T14:30Z — after this doc's first draft, the branch
+  received upstream commits recording BOT engineering guidance
+  (`docs/evidence/BOT-ENGINEERING-GUIDANCE-2026-10-14.md`). Those were merged and the
+  whole validation was **re-run against the merged state**; §3, §9, §14 and §15 below
+  reflect the confirmed guidance. The confirmed items (eth_getLogs 2,000-block range,
+  no rate limit; 2-block receipt confirmations for 968/677; Cancun EVM target) are no
+  longer listed as unknown.
 
 ---
 
@@ -14,9 +21,10 @@
 
 Define and execute the **smallest** evidence-producing validation that materially
 increases confidence in the NexEscrow × BOT Chain integration **without** depending on
-BOT/Cisco's three unanswered network-policy questions (eth_getLogs limits/retry,
-finality/reorg depth, Cancun opcode/precompile limits), and **without** touching BOT
-mainnet 677.
+the network-policy items that remain open (retry/backoff, reorg/finality depth, Cancun
+opcode/precompile limits — see §14), and **without** touching BOT mainnet 677. The
+items BOT has since confirmed (§14, "Confirmed") are reflected directly in the code and
+this document.
 
 This document is a self-contained re-execution recorded in this session. It does not
 replace the deeper package in `docs/BOTCHAIN_VALIDATION_SUMMARY.md`,
@@ -43,9 +51,16 @@ minimal, reproducible core, re-run and re-confirmed today.
 ## 3. Exact commit SHA
 
 - Branch: `feat/botchain-integration`
-- HEAD: `5d4176a0529e25032f0e0bb63a26df00a29fe9e6`
-- Worktree: clean; local HEAD == `origin/feat/botchain-integration` (no unpushed
-  commits at the time of the run).
+- **VALIDATION TARGET SHA** (the exact tree that was tested after the merge):
+  **`abb432a`** — the merge commit joining the local evidence line (`9eba87c`, parent
+  `5d4176a`) with the 7 upstream BOT-guidance commits (`e12939f` … `1cf547c`).
+- **EVIDENCE DOCUMENT COMMIT:** a *later* `docs: reconcile controlled validation with
+  BOT guidance` commit records these corrections on top of `abb432a`. That commit is
+  documentation only; it does **not** test itself — the results below were produced
+  against `abb432a`.
+- Worktree at validation time: clean, no unrelated user changes. The initial draft
+  (pre-merge) was validated against base `5d4176a`; this reconciliation re-ran the full
+  suite against the merged `abb432a`, same green result.
 
 ## 4. Network used
 
@@ -53,7 +68,7 @@ minimal, reproducible core, re-run and re-confirmed today.
 - RPC: `https://rpc.bohr.life` — read-only (`eth_chainId`, `eth_blockNumber`,
   `eth_getCode`, `eth_getLogs`, receipt/call reads only).
 - Observed head block at run time: `0x1997c12` = **26,835,986**.
-- BOT mainnet 677: **not contacted for any write; disabled** (see §F / §10).
+- BOT mainnet 677: **not contacted for any write; disabled** (see §10).
 
 ## 5. Contract / deployment identifiers (existing instance re-verified)
 
@@ -99,7 +114,7 @@ Provenance (STOP-03): the on-chain runtime bytecode hash equals the manifest has
 | Format | `forge fmt --check` | exit 0 — clean |
 | Build | `forge build` | exit 0 — compiles under solc 0.8.26 + cancun |
 | Contract tests | `forge test` | **130 passed / 0 failed / 0 skipped — 8 suites** |
-| Frontend unit tests | `pnpm -s test` | **35 passed / 0 failed** |
+| Frontend unit tests | `pnpm -s test` | **41 passed / 0 failed** (35 pre-merge + 6 new `rpcPolicy.test.ts`) |
 | Chain-safety | `pnpm -s check:chain-safety` | `{selectedChainId:968, allowMainnet:false, offered:[3945,968], warning:null}` — **677 absent from offered set** |
 | Finality-policy | `pnpm -s check:finality-policy` | "finality policy regression checks passed" |
 | Validator unit tests | `pytest tests/` | **6 passed** |
@@ -130,18 +145,26 @@ event identity set `recorded=11 live=11`; `nextAgreementId == 2`;
   reverts for any chain id ≠ 968 (incl. 677); `requireMainnetOptIn` refuses
   677/3946 unless `ALLOW_MAINNET_DEPLOYMENT=true` (never default). Proven by
   `NexusEscrow.DeployGuards.t.sol` (part of the 130).
-- **Finality policy** (`frontend/src/lib/finality.ts`): `writeReceiptConfirmations=2`
-  and `indexingSafetyDepth=12` are distinct fields with an explicit comment that
-  neither is claimed to be BOT's production finality.
-- **Log scan** (`frontend/src/lib/indexer/logScan.ts`): bounded 2,000-block windows
-  (`chunkSize = 2_000n`), dedupe by `(chainId, contractAddress, txHash, logIndex)`,
-  rescan-replace reorg handling, excludes the newest 12 blocks, refuses a
-  cross-chain client; never falls back to `latest`.
+- **Finality policy** (`frontend/src/lib/finality.ts`): BOT 968/677 set
+  `writeReceiptConfirmations=2` (this *is* BOT's confirmed receipt-confirmation count,
+  §14) and `indexingSafetyDepth=12` (a NexEscrow-owned conservative policy, *not* a BOT
+  finality/reorg guarantee). The two are distinct fields; 2 confirmations is explicitly
+  **not** treated as finality.
+- **RPC policy** (`frontend/src/lib/rpcPolicy.ts`): `BOT_RECOMMENDED_LOG_QUERY_BLOCKS =
+  2_000n` enforces BOT's recommended eth_getLogs ceiling on 968/677;
+  `RPC_MAX_ATTEMPTS = 3` with exponential backoff; `isRetryableRpcError` matches only
+  transient classes (429/502/503/504/timeout/network/fetch) — semantic/RPC errors are
+  not matched and therefore not retried.
+- **Log scan** (`frontend/src/lib/indexer/logScan.ts`): bounded windows via
+  `logQueryChunkSizeFor(chainId, …)` (capped at 2,000 on BOT chains), dedupe by
+  `(chainId, contractAddress, txHash, logIndex)`, rescan-replace reorg handling,
+  excludes the newest 12 blocks, refuses a cross-chain client, never falls back to
+  `latest`; `getContractEventsWithRetry` re-throws on the final attempt or any
+  non-retryable error (bounded at `RPC_MAX_ATTEMPTS`).
 - **HTTP indexer** (`frontend/src/lib/indexer/http.ts`): single timed fetch, validates
   and drops cross-chain/malformed rows — no retry amplification.
-- **Retry policy** (`scripts/probe-bot-rpc*.py`): retries only transient HTTP
-  {429,502,503,504} + timeout/network; semantic responses break out of the loop
-  (never blindly retried); bounded by `MAX_ATTEMPTS`.
+- **Probe harnesses** (`scripts/probe-bot-rpc*.py`): evidence-gathering tools (not an
+  app hot-path); bounded, transient-only retries, semantic errors never retried.
 
 ## 10. Transaction hashes / block numbers
 
@@ -193,10 +216,10 @@ passed on the runner — it is not finality, audit, or production evidence.**
 | 07 | clear | conservation exact; principal loss 0 wei |
 | 08 | clear | event-derived state == direct reads; 11==11 identity match |
 | 09 | clear | dedupe + rescan-replace; validator reconciliation passes |
-| 10 | clear | `chunkSize = 2_000n`; no unbounded range in code path |
-| 11 | clear | transient-only, bounded `MAX_ATTEMPTS`, semantic errors not retried |
-| 12 | clear | builds + 130 tests pass under 0.8.26 + cancun |
-| 13 | clear | 2-conf and 12-depth labelled app-side; no finality guarantee assumed |
+| 10 | clear | `logQueryChunkSizeFor` enforces the BOT-recommended 2,000-block ceiling on 968/677; no unbounded range |
+| 11 | clear | transient-only, bounded `RPC_MAX_ATTEMPTS = 3` with backoff, semantic errors re-thrown not retried |
+| 12 | clear | builds + 130 tests pass under 0.8.26 + cancun (Cancun now BOT-confirmed) |
+| 13 | clear | 2-conf is BOT's confirmed *receipt count*, not finality; 12-depth app-side; no reorg/finality guarantee assumed |
 | 14 | clear | no opcode/precompile guarantee assumed |
 | 15 | clear | language scan found no affirmative "audited/approved/production-ready" |
 
@@ -207,29 +230,51 @@ was fabricated to stand in for it. See `docs/evidence/FRESH_TESTNET_RUN_BLOCKED.
 To unblock, supply three funded **testnet** keys + `CONFIRM_BOT_968_DEPLOY=BOT-968`
 and run `scripts/validate-bot-968.py` (which refuses any chain ≠ 968).
 
-## 14. Remaining BOT-side questions (UNKNOWN — unchanged)
+## 14. BOT-side status (confirmed vs still open)
 
-1. **eth_getLogs policy:** officially supported range, hard caps, rate limits, and
-   recommended retry/backoff beyond our bounded transient-only policy. *(We observed
-   no hard range cap and one transient 503 on our own traffic — an observation, not a
-   spec.)*
-2. **Finality / reorg:** recommended receipt confirmations and reorg/indexing safety
-   depth for 968 and 677. *(Our 2-conf and 12-block values are app-side placeholders.)*
-3. **Cancun / EVM:** official Cancun support, recommended compiler `evmVersion`, and
-   any opcode/precompile limitations. *(0.8.26 + cancun builds and tests pass; 0.8.28
-   was a BOT example, not established as a required minimum.)*
+Source for the confirmed items: `docs/evidence/BOT-ENGINEERING-GUIDANCE-2026-10-14.md`
+(Cisco guidance relayed by Leon, 2026-10-14).
+
+### Confirmed by BOT engineering
+
+1. **eth_getLogs:** recommended query range **2,000 blocks/request**; **no** configured
+   rate limit reported. NexEscrow now *enforces* the 2,000-block ceiling on 968/677
+   (`rpcPolicy.ts`), rather than merely defaulting to it.
+2. **Receipt confirmations:** **2 blocks** on both Bohr 968 and BOT 677. Encoded as
+   `writeReceiptConfirmations = 2`. **This is a confirmation count, not a finality or
+   reorg guarantee.**
+3. **EVM target:** **Cancun**. The repo already targets `evm_version = "cancun"` and
+   stays pinned to **Solidity 0.8.26** — Cisco's 0.8.28 example was explicitly *not*
+   established as a required minimum.
+
+### Still open / not yet confirmed by BOT
+
+1. **Retry/backoff:** no BOT-specific retry recommendation. NexEscrow's bounded
+   3-attempt transient-only retry (`rpcPolicy.ts`) is an **application policy**, not BOT
+   guidance.
+2. **Reorg / finality:** no reorganisation handling, finality guarantee, or recommended
+   indexing-safety depth **beyond** the 2-block receipt count. Our 12-block
+   `indexingSafetyDepth` is a conservative **application** choice until BOT advises.
+3. **Cancun opcode/precompile limitations:** not supplied. We assume only the subset of
+   EVM behaviour actually exercised by the existing deployment and the test suite.
 
 ## 15. Explicit limitations (mandatory)
 
 - Validation is **Bohr 968 testnet only**.
-- **BOT 677 remains disabled** — not deployed, not enabled, not selectable for normal
-  execution.
-- **2 receipt confirmations are NOT a reorg/finality guarantee.**
-- **12-block indexing depth is a NexEscrow application-side safety choice**, not
-  claimed as BOT policy unless BOT states otherwise.
+- **BOT 677 remains disabled** — not deployed, not enabled, not production ready, not
+  selectable for normal execution.
+- **2 receipt confirmations are BOT's confirmed receipt count, NOT a reorg/finality
+  guarantee.**
+- **12-block indexing depth is a NexEscrow application-side safety choice**, not BOT
+  policy; it stands until BOT provides reorg/finality guidance.
+- The deterministic + read-only validation proves **application behaviour** and
+  **observations of the existing Bohr deployment**. It does **not** prove network
+  finality, reorg impossibility, universal RPC availability, or opcode/precompile
+  compatibility beyond what was actually exercised.
 - This validation is **not a security audit** (the contract is **UNAUDITED**).
 - This validation is **not production-readiness approval**.
 - This validation is **not ecosystem-support / funding approval**.
+- This validation is **not mainnet approval**.
 - **Real customer funds must not be introduced** on the basis of this validation.
 
 ---
