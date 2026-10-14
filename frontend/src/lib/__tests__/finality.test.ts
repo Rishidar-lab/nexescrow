@@ -39,6 +39,22 @@ test("every supported chain declares an explicit two-stage policy", () => {
   }
 });
 
+test("BOT Chain guidance is encoded as 2 receipt confirmations on 968 and 677", () => {
+  for (const chainId of [968, 677]) {
+    const policy = finalityPolicyFor(chainId);
+    assert.equal(
+      policy.writeReceiptConfirmations,
+      2,
+      `BOT chain ${chainId} must use the engineering-guided 2-block receipt count`,
+    );
+    assert.equal(
+      policy.indexingSafetyDepth,
+      12,
+      `BOT chain ${chainId} keeps NexEscrow's conservative 12-block indexing depth`,
+    );
+  }
+});
+
 test("the two finality stages are independently tunable, not aliases", () => {
   // Deliberately does NOT assert the two values differ. Equal values are a
   // perfectly valid policy — a chain could legitimately need the same number of
