@@ -2,6 +2,12 @@ import type { Address, Hex, PublicClient } from "viem";
 import { escrowAbi } from "@/lib/contract";
 import { finalityPolicyFor, scanReadiness } from "@/lib/finality";
 import {
+  RPC_MAX_ATTEMPTS,
+  isRetryableRpcError,
+  logQueryChunkSizeFor,
+  rpcRetryDelayMs,
+} from "@/lib/rpcPolicy";
+import {
   dedupeEvents,
   eventId,
   type AgreementDiscovery,
@@ -17,7 +23,11 @@ import {
  * honoured client-side — see docs/INDEXING.md for the full server design):
  *
  *  - BOUNDED QUERIES: never asks an RPC for a single unbounded range; scans in
- *    `chunkSize` windows from the contract's deploy block.
+ *    `chunkSize` windows from the contract's deploy block. BOT 968/677 are capped
+ *    at the network-engineering recommended 2,000 blocks per query.
+ *  - BOUNDED RETRY: clearly transient gateway/transport failures are retried at
+ *    most three total attempts with short exponential backoff. This is a
+ *    NexEscrow application policy while BOT-specific retry guidance remains open.
  *  - IDEMPOTENT + DEDUPED: records are keyed by
  *    (chainId, contractAddress, txHash, logIndex) and deduplicated on merge.
  *  - REORG RECONCILIATION: a full rescan replaces records rather than appending;
@@ -41,7 +51,10 @@ export interface LogScanOptions {
    * This is intentionally distinct from write-receipt confirmations.
    */
   confirmations?: number;
-  /** Block window per eth_getLogs call. Default 2,000. */
+  /**
+   * Block window per eth_getLogs call. Default 2,000. Requests above 2,000 are
+   * capped to 2,000 on BOT Chain 968/677 to follow network engineering guidance.
+   */
   chunkSize?: bigint;
   /** How long a completed/pending scan is reused before re-syncing. Default 15s. */
   staleAfterMs?: number;
@@ -82,6 +95,10 @@ function writeCheckpoint(chainId: number, address: Address, block: bigint): void
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAdapter {
   const {
     chainId,
@@ -89,11 +106,35 @@ export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAda
     publicClient,
     startBlock,
     confirmations,
-    chunkSize = 2_000n,
+    chunkSize: requestedChunkSize,
     staleAfterMs = 15_000,
   } = options;
   const indexingSafetyDepth =
     confirmations ?? finalityPolicyFor(chainId).indexingSafetyDepth;
+  const chunkSize = logQueryChunkSizeFor(chainId, requestedChunkSize);
+
+  async function getContractEventsWithRetry(fromBlock: bigint, toBlock: bigint) {
+    for (let attempt = 0; attempt < RPC_MAX_ATTEMPTS; attempt++) {
+      try {
+        return await publicClient.getContractEvents({
+          address: contractAddress,
+          abi: escrowAbi,
+          fromBlock,
+          toBlock,
+        });
+      } catch (error) {
+        const finalAttempt = attempt + 1 >= RPC_MAX_ATTEMPTS;
+        if (finalAttempt || !isRetryableRpcError(error)) {
+          throw error;
+        }
+        await sleep(rpcRetryDelayMs(attempt));
+      }
+    }
+
+    // The loop either returns or throws. This keeps TypeScript's control-flow
+    // analysis explicit if the retry bound changes later.
+    throw new Error("RPC retry loop exhausted unexpectedly");
+  }
 
   async function sync(): Promise<ScanCache> {
     if (publicClient.chain && publicClient.chain.id !== chainId) {
@@ -128,12 +169,7 @@ export function createLogScanAdapter(options: LogScanOptions): AgreementIndexAda
 
     for (let cursor = startBlock; cursor <= head; cursor += chunkSize) {
       const to = cursor + chunkSize - 1n > head ? head : cursor + chunkSize - 1n;
-      const logs = await publicClient.getContractEvents({
-        address: contractAddress,
-        abi: escrowAbi,
-        fromBlock: cursor,
-        toBlock: to,
-      });
+      const logs = await getContractEventsWithRetry(cursor, to);
 
       for (const log of logs) {
         if (log.blockNumber === null || log.blockHash === null || log.transactionHash === null) {
