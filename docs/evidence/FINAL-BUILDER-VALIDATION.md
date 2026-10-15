@@ -3,6 +3,10 @@
 > **UNAUDITED. TESTNET STAGE. NOT PRODUCTION READY.**
 > No independent security audit has been performed. No production-readiness claim is
 > made anywhere in this document. BOT Chain mainnet (677) has never been deployed to.
+>
+> **Historical execution record:** this document describes the 2026-10-14 run at
+> `7d1832b`. Current BOT guidance, the 2026-10-15 retry fix and the controlled next-step
+> plan are recorded in `BOT-CONTROLLED-VALIDATION-2026-10-14.md`.
 
 ---
 
@@ -367,25 +371,25 @@ These are *measurements*, recorded from `docs/evidence/bot-rpc-capability.json`
   cancun). The runtime bytecode hash on chain matches the manifest exactly.
 - Deployment and full lifecycle on Bohr 968 executed successfully under that target.
 
-**This is an observation that Cancun-targeted bytecode executed on Bohr 968. It is not
-an official statement of BOT Chain Cancun support, and not a recommendation of an
-`evmVersion` for BOT mainnet.** That remains **WAITING ON BOT CHAIN ENGINEERING**.
+This was originally an empirical observation only. On 2026-10-14 Cisco's guidance,
+relayed by Leon, confirmed **Cancun** as the EVM target for 968/677. The observation
+therefore matches the later guidance. Opcode/precompile limitations remain open, and
+the Hardhat example's Solidity 0.8.28 was not stated as a compiler minimum.
 
 ---
 
-## 10. External BOT Chain blockers (the only remaining blockers)
+## 10. BOT guidance status (updated 2026-10-15)
 
 | # | Item | Status |
 |---|---|---|
-| 1 | `eth_getLogs` policy — supported ranges, official limits, rate limits, recommended retry behaviour | **WAITING** |
-| 2 | Finality policy — recommended receipt confirmations, reorg / indexing safety depth for 968 and 677 | **WAITING** |
-| 3 | Cancun / EVM policy — official Cancun support, recommended compiler `evmVersion`, opcode & precompile limitations | **WAITING** |
+| 1 | `eth_getLogs` | **PARTIAL** — 2,000 blocks/query confirmed; no configured rate limit reported; retry/backoff recommendation still open |
+| 2 | Confirmations/finality | **PARTIAL** — 2 receipt confirmations confirmed for 968/677; reorg guarantee and indexing depth still open |
+| 3 | Cancun / EVM | **PARTIAL** — Cancun target confirmed; opcode/precompile limitations still open |
 
-Until these arrive, `FINALITY_POLICY_BY_CHAIN` holds **provisional** values
-(`writeReceiptConfirmations: 2`, `indexingSafetyDepth: 12`) inherited from prior
-measured behaviour. They are explicitly *not* claimed to be BOT Chain's recommended
-production finality, and the write-receipt stage and indexing-safety stage are kept
-as two separate values so they cannot silently drift into one another.
+`FINALITY_POLICY_BY_CHAIN` records the BOT-confirmed receipt count
+(`writeReceiptConfirmations: 2`) separately from NexEscrow's application-owned
+`indexingSafetyDepth: 12`. The latter is explicitly not BOT production-finality
+guidance.
 
 **Empirical measurements and BOT Chain policy are kept strictly separate throughout
 this repository.**
@@ -394,8 +398,12 @@ this repository.**
 
 ## 11. Defects found and fixed in this closeout
 
-**None.** No genuine builder-controlled defect was found in the escrow contract,
-deployment path, frontend, scripts, or evidence.
+At this historical closeout, **none** was reported. A later 2026-10-15 review
+reproduced one scoped frontend defect: the text-based retry classifier could retry a
+permanent typed `RpcRequestError` whose message contained `429/502/503/504`. Commit
+`a149a0d8100e8dd88b087ff5d80aaa530db5e46a` replaces that with typed viem error/status
+classification and regression coverage. The retry path is read-only `eth_getLogs`;
+transaction submission was never retried.
 
 The audit covered, with no defect found: escrow authorization; release / refund /
 dispute / arbitration transitions; exact asset conservation; native-token accounting;

@@ -258,11 +258,12 @@ but no transaction was broadcast (`docs/TESTNET_EVIDENCE.md`).
 - Production: HTTP indexer implementing the chain/contract-scoped API in
   `docs/INDEXING.md`; event identity `(chainId, contractAddress, txHash, logIndex)`;
   idempotent ingestion; confirmed-block checkpoints; reorg reconciliation.
-- BOT Chain finality/confirmation depth to be confirmed (§20).
+- BOT receipt confirmations are 2 blocks on 968/677. Reorg/finality guarantees and
+  recommended indexing safety depth remain unconfirmed (§20).
 
 ## 20. Unresolved questions for BOT Chain engineers
 
-Resolved by measurement (2026-10-08, evidence in `docs/evidence/`):
+Resolved by measurement (2026-10-08) or later BOT guidance (2026-10-14):
 
 - ~~Does `eth_getLogs` work?~~ **Yes** on both 968 and 677, contrary to the published
   statement that it is disabled. Single blocks through ~full-history empty-filter ranges
@@ -272,34 +273,36 @@ Resolved by measurement (2026-10-08, evidence in `docs/evidence/`):
   Blockscout with the rust verifier microservice; `forge verify-contract --verifier
   blockscout --verifier-url https://scan.bohr.life/api/` worked with no API key, and the
   contract is verified (`is_verified: true`, solc 0.8.26, evm cancun).
+- ~~Maximum recommended `eth_getLogs` range?~~ **2,000 blocks per request.** BOT
+  reported no configured rate limit; that is not a promise of unlimited capacity.
+- ~~Receipt-confirmation count?~~ **2 blocks** on Bohr 968 and BOT 677. This is not a
+  finality/reorg guarantee.
+- ~~EVM target?~~ **Cancun.** Cisco's Solidity 0.8.28 Hardhat example did not establish
+  a mandatory compiler minimum, so NexEscrow remains pinned to 0.8.26 + Cancun.
+- ~~Bohr faucet?~~ BOT identified `https://faucet.botchain.ai` in the initial network
+  setup. Any operator-specific rate or eligibility limit remains an operational check.
 
 Still open:
 
-1. **EVM hardfork support**: the contract deploys and executes on Bohr with a solc
-   0.8.26 `cancun` target, and the explorer verified it under `evm_version: cancun`.
-   The one previously verified contract we inspected used `paris`. Is Cancun officially
-   supported on 968/677, or should we rebuild with `evm_version = "paris"` for
-   conservative compatibility? (The frontend and indexer are unaffected either way.)
-2. **Transient gateway 503s**: on 2026-10-08 ~20:44-20:46 UTC, `rpc.bohr.life` returned
+1. **Retry/backoff recommendation**: on 2026-10-08 ~20:44-20:46 UTC,
+   `rpc.bohr.life` returned
    nginx `503 Service Temporarily Unavailable` for several minutes even for
-   `eth_chainId`, then recovered; no 429s or rate-limit headers were observed. Is there
-   a documented availability target / maintenance behaviour for this endpoint?
-3. **Finality/confirmation depth**: recommended `confirmations` for the indexer and
-   frontend log scan on each chain.
-4. **`eth_getLogs` operational guidance**: while ranges up to full history are accepted,
-   payload scales with activity (mainnet: 64k blocks -> 12.4k logs / ~4 s for a busy
-   token). Any recommended max range or response-size cap we should target?
-5. **Faucet**: official Bohr testnet faucet (and any rate limits) for operators without
-   pre-funded keys.
-6. **Canonical test tokens**: any official BOT-chain test ERC-20 to exercise the ERC-20
+   `eth_chainId`, then recovered. NexEscrow uses a bounded transient-only read policy;
+   BOT has not published or recommended a retry/backoff policy.
+2. **Reorganisation/finality**: any guarantee or recommended indexing-safety depth
+   beyond the confirmed 2-block receipt count. NexEscrow's 12 blocks are application
+   policy only.
+3. **Cancun limitations**: any opcode or precompile limitations under the confirmed
+   Cancun target, or an explicit statement that none are published.
+4. **Canonical test tokens**: any official BOT-chain test ERC-20 to exercise the ERC-20
    path in public testing.
-7. **Native symbol/decimals confirmation**: BOT, 18 decimals (assumed; confirm).
-8. **Wallet support**: recommended wallet configuration/chain parameters for
+5. **Native symbol/decimals confirmation**: BOT, 18 decimals (assumed; confirm).
+6. **Wallet support**: recommended wallet configuration/chain parameters for
    RainbowKit/wagmi users on Bohr.
-9. **Contract standards expectations**: any BOT Chain-specific registry, verifier
+7. **Contract standards expectations**: any BOT Chain-specific registry, verifier
    lifecycle, or ecosystem contract conventions the escrow should follow.
-10. **677 go-live process**: what BOT Chain expects before a third-party contract is
-    considered for mainnet ecosystem support.
+8. **677 go-live process**: what BOT Chain expects before a third-party contract is
+   considered for mainnet ecosystem support.
 
 ## 21. Mainnet-readiness gates
 
@@ -316,6 +319,7 @@ This list is the gate, not a claim:
       (The validated instance intentionally used discarded throwaway keys.)
 - [ ] Incident process: pause authority, communications, and (given
       non-upgradeability) a migration plan.
-- [ ] Confirmed compatibility with BOT Chain EVM version and finality model.
+- [x] BOT-confirmed Cancun EVM target (opcode/precompile limitations still open).
+- [ ] Confirmed BOT reorg/finality model or explicitly accepted application assumption.
 - [ ] Bug-bounty or equivalent review window.
 - [ ] BOT Chain engineering sign-off.

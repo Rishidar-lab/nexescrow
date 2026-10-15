@@ -1,5 +1,10 @@
 # NEXESCROW — FINAL STATUS
 
+> **Historical snapshot:** this file records the 2026-10-14 validation at `7d1832b`,
+> before the later BOT guidance and retry-policy follow-up. Do not use its WAITING
+> table as current status. Current classifications and the controlled validation plan
+> are in `docs/evidence/BOT-CONTROLLED-VALIDATION-2026-10-14.md`.
+
 - **Date (UTC):** 2026-10-14
 - **Branch:** `feat/botchain-integration`
 - **Validated tree:** `7d1832b5f09845703938e8eb10cc049956e8ede3`
