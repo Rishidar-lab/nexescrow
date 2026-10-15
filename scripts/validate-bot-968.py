@@ -19,7 +19,10 @@ Evidence written to the evidence directory:
   events.json, direct-state.json, lifecycle-report.md
 
 Usage:
-  export PRIVATE_KEY=... SELLER_KEY=... ARBITER_KEY=...
+  read -rsp "Bohr deployer/buyer private key: " PRIVATE_KEY && printf '\n'
+  read -rsp "Bohr seller private key: " SELLER_KEY && printf '\n'
+  read -rsp "Bohr arbiter private key: " ARBITER_KEY && printf '\n'
+  export PRIVATE_KEY SELLER_KEY ARBITER_KEY
   python3 scripts/validate-bot-968.py --rpc-url https://rpc.bohr.life \
       --evidence-dir docs/evidence/bot-968 --use-existing 0x<deployed>
 

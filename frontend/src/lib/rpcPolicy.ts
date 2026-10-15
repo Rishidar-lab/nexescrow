@@ -1,3 +1,5 @@
+import { HttpRequestError, RpcRequestError, TimeoutError } from "viem";
+
 /**
  * Network-facing RPC policy for the lightweight client-side indexer.
  *
@@ -31,20 +33,35 @@ export function logQueryChunkSizeFor(chainId: number, requested = 2_000n): bigin
 }
 
 export function isRetryableRpcError(error: unknown): boolean {
-  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  const text = message.toLowerCase();
+  let current: unknown = error;
 
+  // viem wraps transport failures. Walk a bounded cause chain so a permanent
+  // JSON-RPC response can never become retryable merely because its message
+  // happens to contain a gateway status such as "429" or "502".
+  for (let depth = 0; current !== null && current !== undefined && depth < 5; depth++) {
+    if (current instanceof TimeoutError) return true;
+    if (current instanceof HttpRequestError) {
+      return (
+        current.status === 429 ||
+        current.status === 502 ||
+        current.status === 503 ||
+        current.status === 504
+      );
+    }
+    if (current instanceof RpcRequestError) return false;
+
+    if (typeof current !== "object" && typeof current !== "function") break;
+    current = (current as { cause?: unknown }).cause;
+  }
+
+  // Some runtimes surface low-level fetch failures as plain Errors. Keep the
+  // fallback deliberately narrow: HTTP status and semantic RPC text are handled
+  // only through the typed branches above.
+  const text = String(error instanceof Error ? error.message : error).toLowerCase();
   return (
-    text.includes("429") ||
-    text.includes("502") ||
-    text.includes("503") ||
-    text.includes("504") ||
-    text.includes("timeout") ||
-    text.includes("timed out") ||
     text.includes("network error") ||
     text.includes("fetch failed") ||
-    text.includes("failed to fetch") ||
-    text.includes("temporarily unavailable")
+    text.includes("failed to fetch")
   );
 }
 

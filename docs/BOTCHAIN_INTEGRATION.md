@@ -205,9 +205,11 @@ published statement that it is disabled. Intermittent nginx 503s require retry l
 Deploy with the guarded wrapper (refuses any chain except 968):
 
 ```shell
-export PRIVATE_KEY=...            # burner testnet key, never printed
+read -rsp "Bohr deployer private key: " PRIVATE_KEY && printf '\n'
+export PRIVATE_KEY                # burner testnet key; value stays out of shell history
 export CONFIRM_BOT_968_DEPLOY=BOT-968
 scripts/deploy-bot-968.sh         # runs dry run, balance check, broadcast, manifest
+unset PRIVATE_KEY
 ```
 
 ## 16. Proposed 677 configuration (BOT Chain mainnet — documented, opt-in only)

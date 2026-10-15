@@ -19,9 +19,10 @@
 | CI (at validated tree) | run [38105145398](https://github.com/Rishidar-lab/nexescrow/actions/runs/38105145398) — **success** (Scripts / Contracts / Frontend) |
 | Local toolchain | forge 1.5.1-stable · solc 0.8.26 · Node v22.23.3 · pnpm 11.21.0 · Python 3.12.3 · jq 1.7 |
 
-Every number below was **produced in this execution**, not copied from prior records.
-The closeout changes made after the validated tree are **documentation-only**; no
-contract, script, workflow, or frontend source file was modified.
+All newly reported validation measurements below were **produced in this execution**;
+historical figures are identified where used. The closeout changes made after the
+validated tree are **documentation-only**; no contract, script, workflow, or frontend
+source file was modified.
 
 ---
 

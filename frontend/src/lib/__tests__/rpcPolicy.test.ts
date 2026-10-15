@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { HttpRequestError, RpcRequestError, TimeoutError } from "viem";
 
 const {
   BOT_RECOMMENDED_LOG_QUERY_BLOCKS,
@@ -27,26 +28,50 @@ test("invalid log query chunk sizes fail closed", () => {
   assert.throws(() => logQueryChunkSizeFor(968, -1n), /Invalid log query chunk size/);
 });
 
-test("bounded retry policy recognises transient gateway and transport failures", () => {
-  for (const message of [
-    "HTTP 429 Too Many Requests",
-    "502 Bad Gateway",
-    "503 Service Temporarily Unavailable",
-    "504 Gateway Timeout",
-    "request timed out",
-    "network error",
-    "fetch failed",
-  ]) {
+test("bounded retry policy recognises only the allowlisted typed HTTP and timeout failures", () => {
+  for (const status of [429, 502, 503, 504]) {
+    const error = new HttpRequestError({
+      status,
+      url: "https://rpc.example.invalid",
+    });
+    assert.equal(isRetryableRpcError(error), true, `HTTP ${status}`);
+  }
+
+  assert.equal(
+    isRetryableRpcError(
+      new TimeoutError({ body: { method: "eth_getLogs", params: [] }, url: "https://rpc.example.invalid" }),
+    ),
+    true,
+  );
+
+  for (const status of [400, 401, 403, 404, 500, 501, 505]) {
+    const error = new HttpRequestError({
+      status,
+      url: "https://rpc.example.invalid",
+    });
+    assert.equal(isRetryableRpcError(error), false, `HTTP ${status}`);
+  }
+});
+
+test("bounded retry policy retains a narrow plain transport-error fallback", () => {
+  for (const message of ["network error", "fetch failed", "failed to fetch"]) {
     assert.equal(isRetryableRpcError(new Error(message)), true, message);
   }
 
-  for (const message of [
-    "execution reverted",
-    "invalid params",
-    "method not found",
-    "ABI decoding failed",
-  ]) {
+  for (const message of ["execution reverted", "invalid params", "method not found", "HTTP 503"]) {
     assert.equal(isRetryableRpcError(new Error(message)), false, message);
+  }
+});
+
+test("permanent typed RPC errors are never retried even when their text contains gateway codes", () => {
+  for (const statusText of ["429", "502", "503", "504"]) {
+    const error = new RpcRequestError({
+      body: { method: "eth_getLogs", params: [] },
+      error: { code: -32602, message: `invalid params: supplied value contains ${statusText}` },
+      url: "https://rpc.example.invalid",
+    });
+    assert.equal(isRetryableRpcError(error), false, statusText);
+    assert.equal(isRetryableRpcError(new Error("outer", { cause: error })), false, statusText);
   }
 });
 

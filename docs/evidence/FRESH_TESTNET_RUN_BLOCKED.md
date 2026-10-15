@@ -68,18 +68,23 @@ a 968 run is verified working in this execution:
 Supply three funded **testnet** keys and explicit deploy intent, then run:
 
 ```bash
-export PRIVATE_KEY=...        # burner Bohr testnet deployer/buyer key
-export SELLER_KEY=...         # burner Bohr testnet seller key
-export ARBITER_KEY=...        # burner Bohr testnet arbiter key
+read -rsp "Bohr deployer/buyer private key: " PRIVATE_KEY && printf '\n'
+read -rsp "Bohr seller private key: " SELLER_KEY && printf '\n'
+read -rsp "Bohr arbiter private key: " ARBITER_KEY && printf '\n'
+export PRIVATE_KEY SELLER_KEY ARBITER_KEY
 export CONFIRM_BOT_968_DEPLOY=BOT-968
 
 python3 scripts/validate-bot-968.py \
   --rpc-url https://rpc.bohr.life \
   --evidence-dir docs/evidence/bot-968-<YYYYMMDD>
+
+# Clear signing material from the process environment after the run.
+unset PRIVATE_KEY SELLER_KEY ARBITER_KEY
 ```
 
 This harness refuses to run on any chain other than 968 and never targets BOT
-mainnet 677. Use minimal testnet value only.
+mainnet 677. The silent prompts keep key values out of terminal output and shell
+history. Use minimal testnet value only.
 
 ## Status
 

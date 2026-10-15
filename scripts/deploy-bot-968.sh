@@ -11,7 +11,8 @@
 #     gas used and runtime bytecode keccak256
 #
 # Usage:
-#   export PRIVATE_KEY=...                      # burner testnet key
+#   read -rsp "Bohr deployer private key: " PRIVATE_KEY && printf '\n'
+#   export PRIVATE_KEY                          # burner testnet key
 #   export CONFIRM_BOT_968_DEPLOY=BOT-968
 #   scripts/deploy-bot-968.sh [manifest.json]
 #

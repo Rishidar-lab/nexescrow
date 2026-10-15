@@ -52,9 +52,11 @@ Preferred: the guarded wrapper (chain-968-only, balance check, predicted address
 manifest, never prints the key):
 
 ```shell
-export PRIVATE_KEY=...                    # burner testnet key
+read -rsp "Bohr deployer private key: " PRIVATE_KEY && printf '\n'
+export PRIVATE_KEY                        # burner testnet key; value stays out of shell history
 export CONFIRM_BOT_968_DEPLOY=BOT-968     # explicit intent
 scripts/deploy-bot-968.sh                 # writes docs/evidence/bot-968/deployment.json
+unset PRIVATE_KEY
 ```
 
 It runs a dry run (gas estimate + balance sufficiency), broadcasts
