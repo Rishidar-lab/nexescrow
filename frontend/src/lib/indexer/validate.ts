@@ -27,10 +27,28 @@ export function isValidDiscoveryRow(row: unknown): boolean {
   if (typeof row !== "object" || row === null) return false;
   const r = row as Record<string, unknown>;
   return (
+    typeof r.chainId === "number" &&
+    Number.isSafeInteger(r.chainId) &&
+    r.chainId > 0 &&
+    isAddressLike(r.contractAddress) &&
     isSafeUintString(r.id) &&
     isAddressLike(r.buyer) &&
     isAddressLike(r.seller) &&
     isAddressLike(r.arbiter)
+  );
+}
+
+/** A valid discovery row must also belong to the adapter's configured scope. */
+export function isDiscoveryRowForScope(
+  row: unknown,
+  chainId: number,
+  contractAddress: string,
+): boolean {
+  if (!isValidDiscoveryRow(row)) return false;
+  const r = row as Record<string, unknown>;
+  return (
+    r.chainId === chainId &&
+    (r.contractAddress as string).toLowerCase() === contractAddress.toLowerCase()
   );
 }
 

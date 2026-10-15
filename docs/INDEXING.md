@@ -140,11 +140,13 @@ GET /v1/chains/{chainId}/contracts/{address}/agreements/{id}/events
 GET /v1/chains/{chainId}/contracts/{address}/stats
 ```
 
-Event response items must carry their full identity
+Discovery response items must carry their scope and role fields
+(`chainId`, `contractAddress`, `id`, `buyer`, `seller`, `arbiter`). Event
+response items must carry their full identity
 (`chainId`, `contractAddress`, `transactionHash`, `logIndex`, `blockNumber`,
-`blockHash`, `name`, `args`). The frontend HTTP adapter re-validates
-`chainId`/`contractAddress` and drops mismatches (defense in depth against a
-misconfigured or compromised indexer).
+`blockHash`, `name`, `args`). The frontend HTTP adapter re-validates the
+`chainId`/`contractAddress` scope on both response types and drops mismatches
+(defense in depth against a misconfigured or compromised indexer).
 
 ### 4.4 Confirmations by chain
 

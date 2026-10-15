@@ -17,7 +17,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const { isValidDiscoveryRow, isValidEventRow } = await import(
+const { isDiscoveryRowForScope, isValidDiscoveryRow, isValidEventRow } = await import(
   new URL("../indexer/validate.ts", import.meta.url).href
 );
 
@@ -30,7 +30,14 @@ const HASH = "0x" + "ab".repeat(32);
 
 test("accepts a well-formed discovery row", () => {
   assert.equal(
-    isValidDiscoveryRow({ id: "0", buyer: ADDRESS_A, seller: ADDRESS_B, arbiter: ADDRESS_C }),
+    isValidDiscoveryRow({
+      chainId: 968,
+      contractAddress: ADDRESS_A,
+      id: "0",
+      buyer: ADDRESS_A,
+      seller: ADDRESS_B,
+      arbiter: ADDRESS_C,
+    }),
     true,
   );
 });
@@ -45,7 +52,14 @@ test("CRITICAL: rejects a non-array payload instead of throwing", () => {
 test("CRITICAL: rejects rows whose addresses are missing or malformed", () => {
   // These would previously reach `.toLowerCase()` in useMyAgreements and throw
   // inside useMemo, taking the dashboard down.
-  const base = { id: "1", buyer: ADDRESS_A, seller: ADDRESS_B, arbiter: ADDRESS_C };
+  const base = {
+    chainId: 968,
+    contractAddress: ADDRESS_A,
+    id: "1",
+    buyer: ADDRESS_A,
+    seller: ADDRESS_B,
+    arbiter: ADDRESS_C,
+  };
   const bads = [
     { ...base, buyer: undefined },
     { ...base, seller: null },
@@ -61,12 +75,37 @@ test("CRITICAL: rejects rows whose addresses are missing or malformed", () => {
 });
 
 test("CRITICAL: rejects non-numeric-string ids", () => {
-  const base = { buyer: ADDRESS_A, seller: ADDRESS_B, arbiter: ADDRESS_C };
+  const base = {
+    chainId: 968,
+    contractAddress: ADDRESS_A,
+    buyer: ADDRESS_A,
+    seller: ADDRESS_B,
+    arbiter: ADDRESS_C,
+  };
   for (const id of ["", "abc", "1.5", "-1", "0x1", " 1", "1 ", null, 1, undefined]) {
     assert.equal(isValidDiscoveryRow({ ...base, id }), false, `id=${JSON.stringify(id)} must be rejected`);
   }
   // Leading zeros are still a valid decimal string.
   assert.equal(isValidDiscoveryRow({ ...base, id: "007" }), true);
+});
+
+test("CRITICAL: rejects discovery rows outside the configured chain and contract", () => {
+  const row = {
+    chainId: 968,
+    contractAddress: ADDRESS_A,
+    id: "1",
+    buyer: ADDRESS_A,
+    seller: ADDRESS_B,
+    arbiter: ADDRESS_C,
+  };
+
+  assert.equal(isDiscoveryRowForScope(row, 968, ADDRESS_A), true);
+  assert.equal(isDiscoveryRowForScope({ ...row, chainId: 677 }, 968, ADDRESS_A), false);
+  assert.equal(
+    isDiscoveryRowForScope({ ...row, contractAddress: ADDRESS_B }, 968, ADDRESS_A),
+    false,
+  );
+  assert.equal(isDiscoveryRowForScope({ ...row, contractAddress: undefined }, 968, ADDRESS_A), false);
 });
 
 test("rejects non-objects", () => {

@@ -1,4 +1,4 @@
-import { isValidDiscoveryRow, isValidEventRow } from "./validate";
+import { isDiscoveryRowForScope, isValidEventRow } from "./validate";
 import type { Address, Hex } from "viem";
 import {
   eventId,
@@ -33,6 +33,8 @@ interface WireEvent {
 }
 
 interface WireDiscovery {
+  chainId: number;
+  contractAddress: string;
   id: string;
   buyer: string;
   seller: string;
@@ -79,7 +81,9 @@ export function createHttpIndexerAdapter(options: HttpIndexerOptions): Agreement
       // anything malformed is dropped rather than partially trusted.
       if (!Array.isArray(wire)) return [];
       return wire
-        .filter((row): row is WireDiscovery => isValidDiscoveryRow(row))
+        .filter((row): row is WireDiscovery =>
+          isDiscoveryRowForScope(row, chainId, contractAddress),
+        )
         .map((row) => ({
           id: BigInt(row.id),
           buyer: row.buyer as Address,
