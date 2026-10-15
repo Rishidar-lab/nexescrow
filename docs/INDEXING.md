@@ -148,6 +148,15 @@ response items must carry their full identity
 `chainId`/`contractAddress` scope on both response types and drops mismatches
 (defense in depth against a misconfigured or compromised indexer).
 
+Compatibility gate: legacy discovery payloads without numeric `chainId` and
+`contractAddress` are rejected, even if the request URL is scoped correctly.
+Before setting `NEXT_PUBLIC_INDEXER_URL`, verify the producer supplies those fields
+and check a known participant's agreements against direct chain reads. Repository
+defaults do not enable an HTTP indexer, and no HTTP service implementation is
+included here; live producer compatibility must not be inferred from validator
+unit tests. `frontend/scripts/verify-indexer-integration.ts` exercises this
+response boundary against a local HTTP fixture server.
+
 ### 4.4 Confirmations by chain
 
 `confirmations` is policy, not a constant: set per chain from its finality model.
