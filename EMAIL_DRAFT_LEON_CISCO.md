@@ -45,12 +45,15 @@ events, unexpected RPC/EVM behaviour, a violated finality assumption, a missing
 approval, or an exceeded pre-agreed limit. Cleanup disables 677 again and requires
 reconciliation of any test assets.
 
-One reproducible application defect was corrected in commit
-`a149a0d8100e8dd88b087ff5d80aaa530db5e46a`: the read-side retry classifier could
-misclassify a typed permanent JSON-RPC error as transient when its message happened
-to contain text such as `429` or `502`. Typed RPC errors now fail immediately;
-retries remain limited to typed timeouts and allow-listed transient HTTP failures.
-State-changing writes are not automatically resubmitted.
+Two reproducible application defects were corrected. Commit
+`a149a0d8100e8dd88b087ff5d80aaa530db5e46a` prevents the read-side retry classifier
+from treating a typed permanent JSON-RPC error as transient merely because its
+message contains text such as `429` or `502`. Typed RPC errors now fail
+immediately; retries remain limited to typed timeouts and allow-listed transient HTTP
+failures. State-changing writes are not automatically resubmitted. Commit
+`60c8809793d8dc634114c7644ffa0e4a51cdf2e8` requires optional HTTP-indexer discovery
+records to match the configured chain and contract instead of trusting URL scope
+alone.
 
 For clarity, the 2-block receipt-confirmation setting and the 2,000-block maximum
 `eth_getLogs` window are implemented from the previously supplied BOT guidance. The
@@ -106,10 +109,12 @@ Decision boundary:
   behaviour, violated finality assumption, missing approval or exceeded limit. It
   must end by disabling 677 again and reconciling test assets.
 
-Application correction: commit `a149a0d8100e8dd88b087ff5d80aaa530db5e46a`
+Application corrections: commit `a149a0d8100e8dd88b087ff5d80aaa530db5e46a`
 makes the read retry policy type-aware so permanent JSON-RPC errors cannot be retried
-merely because their message contains a gateway status code. There are no automatic
-transaction resubmission retries.
+merely because their message contains a gateway status code; commit
+`60c8809793d8dc634114c7644ffa0e4a51cdf2e8` binds optional HTTP-indexer discovery
+records to the configured chain and contract. There are no automatic transaction
+resubmission retries.
 
 Confirmed BOT guidance currently implemented: 2,000 blocks maximum per
 `eth_getLogs` query, 2 receipt confirmations on 968 and 677, and Cancun targeting.
