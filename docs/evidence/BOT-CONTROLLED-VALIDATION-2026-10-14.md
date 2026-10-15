@@ -604,3 +604,28 @@ it sends no RPC write and does not authorize deployment or frontend enablement.
 - **Next measurable review point:** integration head pushed and matching CI green;
   after that, receipt of BOT answers and agreement of B0. No BOT response date is
   promised.
+
+## 21. 15 October local verification record
+
+- **Validation target:** `9c8ac71b58875c4406d10670c3bd760a1e206c6e`
+- **Window:** 2026-10-15T14:16:50Z–2026-10-15T14:17:45Z
+- **Network activity:** read-only Bohr RPC verification only; no signing key, write,
+  deployment, fresh lifecycle, mainnet transaction or customer fund.
+
+| Area | Result |
+|---|---|
+| Contract format/build | PASS; Foundry reported no format change and no compile error |
+| Contract default tests | PASS — 130/130, 8 suites; invariant profile 128×64 |
+| Contract CI/stress tests | PASS — 130/130; fuzz 4,096; invariants 256×128 (32,768 calls/invariant, 0 reverts) |
+| Frontend lint/typecheck | PASS |
+| Frontend unit tests | PASS — 43/43, including typed permanent-RPC non-retry regression |
+| Chain safety | PASS — default 968; requested 677 without opt-in failed closed to 968; explicit local-only opt-in selected 677 |
+| Finality policy / build | PASS; production build generated 6 routes |
+| Tooling | PASS — workflow YAML, Python/shell syntax, evidence JSON, diff check; pytest 6/6 |
+| Live evidence verifier | PASS — 34/34 read-only checks; chain 968, bytecode hash, receipts, state, balances and recorded=11/live=11 event identities |
+
+Foundry emitted its existing informational `unsafe-cheatcode` notes for the deployment
+guard tests' deliberate `vm.setEnv` use; it reported no failed check. A5's browser
+checkpoint/restart procedure was **not executed** in this run, and A6/B0–B5 remain
+unexecuted. Remote CI must be matched to the pushed head separately; no older run is
+claimed for this target.
