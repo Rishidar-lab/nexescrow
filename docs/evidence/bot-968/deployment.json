@@ -1,0 +1,25 @@
+{
+  "chainId": 968,
+  "network": "BOT Chain Bohr Testnet",
+  "rpcUrl": "https://rpc.bohr.life",
+  "contract": "NexusEscrow",
+  "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+  "transactionHash": "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61",
+  "blockNumber": 26178651,
+  "gasUsed": 1513781,
+  "gasEstimate": 1967915,
+  "bytecodeHash": "0x7fba19dd52ec2caff42086cc4af9f342caed5564fc1240557e779e1353ea59a7",
+  "deployer": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+  "owner": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+  "feeRecipient": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+  "compiler": {
+    "solc": "0.8.26",
+    "optimizer": true,
+    "optimizerRuns": 200,
+    "viaIR": true,
+    "evmVersion": "cancun"
+  },
+  "gitCommit": "0293094a81d32dfa92d437e63edbadb0304e50ba",
+  "deployedAt": "2026-10-08T21:04:33Z",
+  "auditStatus": "UNAUDITED"
+}

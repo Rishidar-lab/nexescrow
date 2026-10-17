@@ -2,21 +2,28 @@
 
 import type { Address } from "viem";
 import { useReadContract } from "wagmi";
-import { escrowAbi, escrowAddress, type Agreement, type Milestone } from "@/lib/contract";
+import { escrowAbi, escrowAddress, escrowConfigured, type Agreement, type Milestone } from "@/lib/contract";
+import { selectedChainId } from "@/lib/chain";
 
 export function useAgreement(id: bigint) {
+  // Reads always target the configured chain explicitly; they never silently
+  // fall back to whatever chain the wallet happens to be on.
   const agreementResult = useReadContract({
+    chainId: selectedChainId,
     address: escrowAddress,
     abi: escrowAbi,
     functionName: "agreements",
     args: [id],
+    query: { enabled: escrowConfigured },
   });
 
   const milestonesResult = useReadContract({
+    chainId: selectedChainId,
     address: escrowAddress,
     abi: escrowAbi,
     functionName: "getMilestones",
     args: [id],
+    query: { enabled: escrowConfigured },
   });
 
   const raw = agreementResult.data as readonly unknown[] | undefined;
@@ -44,15 +51,18 @@ export function useAgreement(id: bigint) {
     agreement,
     milestones,
     isLoading: agreementResult.isLoading || milestonesResult.isLoading,
-    refetch: () => {
-      agreementResult.refetch();
-      milestonesResult.refetch();
-    },
+    refetch: () =>
+      // Both queries are awaited together. Returning them unawaited would let a
+      // caller believe reconciliation had finished while the agreement and its
+      // milestones were still stale, which is exactly the window in which the UI
+      // can render the pre-transaction state as if the write had landed.
+      Promise.all([agreementResult.refetch(), milestonesResult.refetch()]),
   };
 }
 
 export function useAllowance(token: Address, owner: Address | undefined) {
   return useReadContract({
+    chainId: selectedChainId,
     address: token,
     abi: [
       {
@@ -68,6 +78,6 @@ export function useAllowance(token: Address, owner: Address | undefined) {
     ] as const,
     functionName: "allowance",
     args: owner ? [owner, escrowAddress] : undefined,
-    query: { enabled: !!owner },
+    query: { enabled: !!owner && escrowConfigured },
   });
 }

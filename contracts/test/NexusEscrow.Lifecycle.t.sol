@@ -283,4 +283,113 @@ contract NexusEscrowLifecycleTest is TestBase {
         vm.expectRevert(NexusEscrow.WrongState.selector);
         escrow.cancelBeforeFunding(id);
     }
+
+    // ---------------------------------------------------------------------
+    // Boundary, overflow, ordering and unknown-id behaviour
+    // ---------------------------------------------------------------------
+
+    function test_CreateAgreement_RevertWhen_MilestoneSumOverflowsUint128() public {
+        uint128[] memory milestones = new uint128[](2);
+        milestones[0] = type(uint128).max;
+        milestones[1] = 1; // sum = 2^128, one past the storable max
+
+        vm.prank(buyer);
+        vm.expectRevert(NexusEscrow.InvalidAmount.selector);
+        escrow.createAgreement(seller, arbiter, address(0), milestones, 0);
+    }
+
+    function test_CreateAgreement_MaxMilestones_Allowed() public {
+        uint128[] memory milestones = new uint128[](50);
+        for (uint256 i = 0; i < 50; ++i) {
+            milestones[i] = 1; // tiny amounts keep the sum bounded
+        }
+        uint256 id = _createNativeAgreement(milestones);
+        (,,,,,,,,, uint8 count,) = escrow.agreements(id);
+        assertEq(count, 50);
+    }
+
+    function test_Fund_ExactlyAtDeadline_IsAllowed() public {
+        uint40 deadline = uint40(block.timestamp + 1 days);
+        uint256 id = _createAgreement(address(0), _singleMilestone(1 ether), deadline);
+
+        vm.warp(deadline); // boundary: fund checks `>` so equality passes
+        vm.prank(buyer);
+        escrow.fund{ value: 1 ether }(id);
+
+        (,,,,,, NexusEscrow.AgreementStatus status,,,,) = escrow.agreements(id);
+        assertEq(uint8(status), uint8(NexusEscrow.AgreementStatus.Active));
+    }
+
+    function test_CancelBeforeFunding_ExactlyAtDeadline_StrangerStillBlocked() public {
+        uint40 deadline = uint40(block.timestamp + 1 days);
+        uint256 id = _createAgreement(address(0), _singleMilestone(1 ether), deadline);
+
+        vm.warp(deadline); // cancel uses `>`; equality is not yet "passed"
+        vm.prank(stranger);
+        vm.expectRevert(NexusEscrow.NotAuthorized.selector);
+        escrow.cancelBeforeFunding(id);
+    }
+
+    function test_MilestoneOrder_CursorOnly_NoBypass() public {
+        uint256 id = _createAndFundNative(_threeMilestones());
+
+        // While milestone 0 is Pending, indices 1 and 2 are unreachable: the only
+        // state-changing paths act on `nextMilestone`, and after release the cursor
+        // advances by exactly one. Prove the post-conditions.
+        vm.prank(buyer);
+        escrow.approveMilestone(id);
+
+        NexusEscrow.Milestone[] memory milestones = escrow.getMilestones(id);
+        assertEq(uint8(milestones[0].status), uint8(NexusEscrow.MilestoneStatus.Released));
+        assertEq(uint8(milestones[1].status), uint8(NexusEscrow.MilestoneStatus.Pending));
+        assertEq(uint8(milestones[2].status), uint8(NexusEscrow.MilestoneStatus.Pending));
+
+        (,,,,,,,,, uint8 count, uint8 next) = escrow.agreements(id);
+        assertEq(next, 1);
+        assertEq(count, 3);
+
+        // The cursor cannot be aimed back at index 0: approving again necessarily
+        // releases index 1 (in order), never re-releases index 0.
+        vm.prank(buyer);
+        escrow.approveMilestone(id);
+        milestones = escrow.getMilestones(id);
+        assertEq(uint8(milestones[0].status), uint8(NexusEscrow.MilestoneStatus.Released));
+        assertEq(uint8(milestones[1].status), uint8(NexusEscrow.MilestoneStatus.Released));
+        assertEq(uint8(milestones[2].status), uint8(NexusEscrow.MilestoneStatus.Pending));
+        (,,,,,,,,, count, next) = escrow.agreements(id);
+        assertEq(next, 2);
+    }
+
+    function test_UnknownAgreement_NoValuePaths() public {
+        uint256 ghostId = 999;
+
+        vm.deal(stranger, 1 ether);
+        vm.prank(stranger);
+        vm.expectRevert(NexusEscrow.NotBuyer.selector);
+        escrow.fund{ value: 1 ether }(ghostId);
+
+        // approveMilestone's caller check runs before its state check.
+        vm.prank(stranger);
+        vm.expectRevert(NexusEscrow.NotBuyer.selector);
+        escrow.approveMilestone(ghostId);
+
+        vm.prank(stranger);
+        vm.expectRevert(NexusEscrow.WrongState.selector);
+        escrow.raiseDispute(ghostId);
+
+        vm.prank(stranger);
+        vm.expectRevert(NexusEscrow.NotAuthorized.selector);
+        escrow.cancelBeforeFunding(ghostId);
+
+        // Views return zeroed data — integrators must bound ids by nextAgreementId().
+        (address buyerAddr,,,,,,,,,,) = escrow.agreements(ghostId);
+        assertEq(buyerAddr, address(0));
+        assertEq(escrow.getMilestones(ghostId).length, 0);
+    }
+
+    function test_GetMilestone_RevertWhen_IndexOutOfBounds() public {
+        uint256 id = _createNativeAgreement(_singleMilestone(1 ether));
+        vm.expectRevert();
+        escrow.getMilestone(id, 1);
+    }
 }

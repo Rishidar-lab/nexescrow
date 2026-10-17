@@ -33,6 +33,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# public build-time defaults (testnet-only; contains no secrets)
+!.env.production
 
 # vercel
 .vercel

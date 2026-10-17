@@ -5,6 +5,9 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   contracts:
     name: Contracts
@@ -21,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22.13.0"
           cache: pnpm
           cache-dependency-path: contracts/pnpm-lock.yaml
 
@@ -38,8 +41,11 @@ jobs:
       - name: Build
         run: forge build --sizes
 
-      - name: Test
+      - name: Test (default profile - fuzz 1024, invariants 128x64)
         run: forge test -vvv
+
+      - name: Fuzz/invariant stress (CI profile - fuzz 4096, invariants 256x128)
+        run: FOUNDRY_PROFILE=ci forge test -vvv
 
   frontend:
     name: Frontend
@@ -56,7 +62,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22.13.0"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -66,5 +72,60 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Chain safety — default build must select testnet (968)
+        run: EXPECT_CHAIN_ID=968 pnpm check:chain-safety
+
+      - name: Chain safety — mainnet request without opt-in must fail closed
+        run: NEXT_PUBLIC_CHAIN_ID=3946 EXPECT_CHAIN_ID=968 pnpm check:chain-safety
+
+      - name: Chain safety — unknown chain must fail closed
+        run: NEXT_PUBLIC_CHAIN_ID=1 EXPECT_CHAIN_ID=968 pnpm check:chain-safety
+
+      - name: Chain safety — explicit opt-in allows the requested mainnet
+        run: NEXT_PUBLIC_CHAIN_ID=3946 NEXT_PUBLIC_ALLOW_MAINNET=true EXPECT_CHAIN_ID=3946 pnpm check:chain-safety
+
+      - name: Finality policy — unconfirmed deployment stays pending
+        run: pnpm check:finality-policy
+
+      - name: Unit tests — chain resolution and finality policy
+        run: pnpm test
+
       - name: Build
         run: pnpm build
+
+  tooling:
+    name: Scripts
+    runs-on: ubuntu-latest
+    steps:
+      # This job only runs syntax checks; it performs no authenticated git
+      # operation, so the read-only GITHUB_TOKEN has no reason to be written
+      # into .git/config. Disabling persistence means a compromised dependency
+      # installed below (pyyaml comes from PyPI) cannot read the token.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install YAML tooling
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: Workflow syntax
+        run: python3 -c "import glob, yaml; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('workflow yaml OK')"
+
+      - name: Python syntax
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Shell syntax
+        run: bash -n scripts/deploy-bot-968.sh
+
+      - name: Validator unit tests (dispute fee arithmetic)
+        run: python3 -m unittest discover -s tests
+
+      - name: Evidence JSON is well-formed
+        run: jq -e . docs/evidence/bot-rpc-capability.json docs/evidence/bot-968/deployment.json docs/evidence/bot-968/events.json > /dev/null

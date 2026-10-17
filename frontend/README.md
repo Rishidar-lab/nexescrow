@@ -1,30 +1,49 @@
 # NexEscrow frontend
 
 Next.js (App Router) + wagmi + viem + RainbowKit dApp for `NexusEscrow.sol`. See the
-[repo root README](../README.md) for the full picture.
+[repo root README](../README.md) for the full picture and
+[`docs/THREAT_MODEL.md`](../docs/THREAT_MODEL.md) for the security model.
+
+**Status: testnet / unaudited.** The UI labels this explicitly and mainnet is disabled
+unless an operator opts in.
 
 ## Setup
 
 ```bash
 pnpm install
-cp .env.example .env.local   # fill in the deployed contract address and RPC URL
+cp .env.example .env.local   # set the chain + per-chain contract address
 pnpm dev
 ```
 
-Required env vars (see `.env.example`):
+## Chain configuration (read before changing)
 
-- `NEXT_PUBLIC_ESCROW_ADDRESS` — deployed `NexusEscrow` address
-- `NEXT_PUBLIC_NEXUS_RPC_URL` / `NEXT_PUBLIC_NEXUS_EXPLORER_URL` — Nexus L1 endpoints
-- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` — free project ID from
-  [cloud.reown.com](https://cloud.reown.com); without it, WalletConnect won't work but
-  injected wallets (MetaMask, etc.) still do
+- The build **defaults to a testnet** (BOT Chain Bohr, 968). It never defaults to mainnet.
+- Mainnet ids in `NEXT_PUBLIC_CHAIN_ID` are ignored (fail closed to testnet) unless
+  `NEXT_PUBLIC_ALLOW_MAINNET=true`; the UI shows a visible warning when it had to
+  override a request.
+- Contract addresses are **per chain** (`NEXT_PUBLIC_ESCROW_ADDRESS_<chainId>`). There is
+  no shared address variable, and no cross-chain fallback.
+- Every write goes through `useEscrowWrite`, which asserts
+  `connectedChainId === selectedChainId` and passes an explicit `chainId` to the wallet.
+  Wrong-network transactions are blocked before submission; the status bar offers a
+  one-click switch.
+- If the selected chain has no configured contract, the UI is read-only and writes are
+  disabled rather than sent to the zero address.
+
+Supported chains: Nexus Testnet (3945), BOT Chain Bohr (968), and — opt-in only —
+Nexus Mainnet (3946) and BOT Chain Mainnet (677).
 
 ## Structure
 
-- `src/lib/chain.ts`, `src/lib/wagmi.ts` — Nexus L1 chain + wagmi/RainbowKit config
-- `src/lib/contract.ts`, `src/lib/nexusEscrowAbi.ts` — contract address/ABI wiring
-  (ABI is generated from `contracts/out/`, see the comment at the top of that file)
-- `src/hooks/useMyAgreements.ts` — discovers agreements for the connected wallet by
-  scanning `AgreementCreated` logs; fine for testnet scale, swap for an indexer in prod
-- `src/hooks/useAgreement.ts` — reads a single agreement + its milestones
-- `src/app/` — dashboard (`/`), create form (`/create`), agreement detail (`/agreement/[id]`)
+- `src/lib/chain.ts` — all chain definitions, selection/fail-closed logic, per-chain
+  addresses, explorer helpers, wrong-network guard.
+- `src/lib/wagmi.ts` — wagmi/RainbowKit config (testnets only unless mainnet allowed).
+- `src/lib/contract.ts`, `src/lib/nexusEscrowAbi.ts` — ABI wiring (ABI generated from
+  `contracts/out/NexusEscrow.sol/NexusEscrow.json`).
+- `src/lib/indexer/` — agreement index abstraction: bounded RPC log scan adapter +
+  HTTP indexer adapter. The production ingestion design is in `../docs/INDEXING.md`.
+- `src/hooks/useEscrowWrite.ts` — guarded writes with the full
+  wallet → pending → mined → confirmed → reconciled lifecycle.
+- `src/hooks/useMyAgreements.ts` — agreement discovery for the connected wallet.
+- `src/app/` — landing (`/`), dashboard (`/dashboard`), create form (`/create`),
+  agreement detail (`/agreement/[id]`).

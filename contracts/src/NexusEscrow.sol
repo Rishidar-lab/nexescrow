@@ -9,7 +9,9 @@ import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
 /// @title NexusEscrow
 /// @notice Non-custodial, milestone-based escrow for two-party agreements settled in
-///         native NEX or any ERC-20 token, with third-party arbitration on disputes.
+///         the chain's native asset or any ERC-20 token, with third-party arbitration
+///         on disputes. Chain-agnostic: no assumptions about chain id, native symbol,
+///         or decimals beyond standard ERC-20 behavior (see UnsupportedTokenBehavior).
 /// @dev Milestones for a given agreement release strictly in order. There is no
 ///      unilateral timeout release: a counterparty that goes unresponsive is handled
 ///      by raising a dispute and letting the designated arbiter decide, not by a clock.
@@ -130,6 +132,7 @@ contract NexusEscrow is ReentrancyGuard, Ownable2Step, Pausable {
     error NativeValueMismatch();
     error NothingToWithdraw();
     error NativeTransferFailed();
+    error UnsupportedTokenBehavior();
 
     // ---------------------------------------------------------------------
     // Constructor
@@ -169,7 +172,7 @@ contract NexusEscrow is ReentrancyGuard, Ownable2Step, Pausable {
     /// @notice Creates a new escrow agreement. Caller becomes the buyer.
     /// @param seller Counterparty receiving milestone payouts.
     /// @param arbiter Neutral third party who resolves disputes for this agreement.
-    /// @param token ERC-20 token address, or address(0) for native NEX.
+    /// @param token ERC-20 token address, or address(0) for the native asset.
     /// @param milestoneAmounts Ordered milestone payout amounts; must sum to the total.
     /// @param fundingDeadline Unix timestamp by which the buyer must call `fund`, or 0 for none.
     function createAgreement(
@@ -248,7 +251,15 @@ contract NexusEscrow is ReentrancyGuard, Ownable2Step, Pausable {
             if (msg.value != a.totalAmount) revert NativeValueMismatch();
         } else {
             if (msg.value != 0) revert NativeValueMismatch();
+            uint256 balanceBefore = IERC20(a.token).balanceOf(address(this));
             IERC20(a.token).safeTransferFrom(msg.sender, address(this), a.totalAmount);
+            // Fail closed on fee-on-transfer/deflationary tokens: the contract must
+            // receive the full total, otherwise later milestone payouts would be
+            // under-collateralized. Rebasing tokens that change balance afterwards are
+            // out of scope and documented as unsupported.
+            if (IERC20(a.token).balanceOf(address(this)) - balanceBefore != a.totalAmount) {
+                revert UnsupportedTokenBehavior();
+            }
         }
 
         emit Funded(id);

@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-10-08T21:04:50Z",
+  "chainId": 968,
+  "escrow": {
+    "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+    "nativeWei": "1400000000000000"
+  },
+  "buyer": {
+    "address": "0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af",
+    "nativeWei": "317629680000000000"
+  },
+  "seller": {
+    "address": "0x00669c300511207767dD0556F0575C8d7bbEBF8E",
+    "nativeWei": "187805860000000000"
+  },
+  "arbiter": {
+    "address": "0x617BCBCA7d5F42F0cb5a6d03BdA9F1f1A3A6C433",
+    "nativeWei": "48463980000000000"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-17T15:26:00Z",
+  "chain_id": 968,
+  "network": "bot-bohr-testnet",
+  "rpc_url": "https://rpc.bohr.life",
+  "read_only": true,
+  "mainnet_read_opt_in": false,
+  "evidence_boundary": {
+    "observational_only": true,
+    "no_transactions": true,
+    "no_deployment": true,
+    "does_not_establish": [
+      "BOT Chain finality guarantee",
+      "BOT Chain retry/backoff policy",
+      "BOT Chain opcode/precompile guarantee",
+      "security audit",
+      "production readiness",
+      "ecosystem-support approval"
+    ]
+  },
+  "parameters": {
+    "max_range": 2000,
+    "max_results": 10000,
+    "range_spans": "500,1000,2000",
+    "head_samples": 6,
+    "head_interval_s": 5.0,
+    "head_depth": 12
+  },
+  "dry_run": false,
+  "steps": [
+    {
+      "name": "rpc-capability",
+      "command": [
+        "/usr/bin/python3",
+        "/home/parzival/nexescrow/scripts/probe-bot-rpc.py",
+        "--name",
+        "bot-bohr-testnet",
+        "--rpc-url",
+        "https://rpc.bohr.life",
+        "--expected-chain-id",
+        "968",
+        "--max-range",
+        "2000",
+        "--max-results",
+        "10000",
+        "--out",
+        "/home/parzival/nexescrow/docs/evidence/bot-network-compatibility/bot-bohr-testnet-rpc-capability.json",
+        "--log-address",
+        "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+        "--historical-block",
+        "26178651",
+        "--receipt-tx",
+        "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "stdout_tail": "{\n  \"network\": \"bot-bohr-testnet\",\n  \"observed_chain_id\": 968,\n  \"latest_block\": 27188386,\n  \"methods_tested\": 9,\n  \"get_logs_ranges\": [\n    {\n      \"label\": \"single latest block\",\n      \"span\": 1,\n      \"all_ok\": true,\n      \"median_ms\": 704.7,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"single historical block\",\n      \"span\": 1,\n      \"all_ok\": true,\n      \"median_ms\": 527.8,\n      \"count\": 1,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"10-block range\",\n      \"span\": 11,\n      \"all_ok\": true,\n      \"median_ms\": 532.9,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"100-block range\",\n      \"span\": 101,\n      \"all_ok\": true,\n      \"median_ms\": 528.7,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"1000-block range\",\n      \"span\": 1001,\n      \"all_ok\": true,\n      \"median_ms\": 531.0,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"2000-block range\",\n      \"span\": 2000,\n      \"all_ok\": true,\n      \"median_ms\": 562.8,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    }\n  ],\n  \"range_stop_reason\": null,\n  \"total_requests\": 52\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "eth-getLogs-range-cap",
+      "command": [
+        "/usr/bin/python3",
+        "/home/parzival/nexescrow/scripts/probe-bot-rpc-range-cap.py",
+        "--name",
+        "bot-bohr-testnet",
+        "--rpc-url",
+        "https://rpc.bohr.life",
+        "--spans",
+        "500,1000,2000",
+        "--out",
+        "/home/parzival/nexescrow/docs/evidence/bot-network-compatibility/bot-bohr-testnet-range-cap.json"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "stdout_tail": "{\n  \"500\": {\n    \"outcome\": \"ok\",\n    \"http_status\": 200,\n    \"error_code\": null,\n    \"latency_ms\": 500.5\n  },\n  \"1000\": {\n    \"outcome\": \"ok\",\n    \"http_status\": 200,\n    \"error_code\": null,\n    \"latency_ms\": 533.8\n  },\n  \"2000\": {\n    \"outcome\": \"ok\",\n    \"http_status\": 200,\n    \"error_code\": null,\n    \"latency_ms\": 567.0\n  }\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "name": "head-stability",
+      "command": [
+        "/usr/bin/python3",
+        "/home/parzival/nexescrow/scripts/observe-bot-head-stability.py",
+        "--name",
+        "bot-bohr-testnet",
+        "--rpc-url",
+        "https://rpc.bohr.life",
+        "--expected-chain-id",
+        "968",
+        "--samples",
+        "6",
+        "--interval-s",
+        "5.0",
+        "--depth",
+        "12",
+        "--out",
+        "/home/parzival/nexescrow/docs/evidence/bot-network-compatibility/bot-bohr-testnet-head-stability.json"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "stdout_tail": "{\n  \"samples_completed\": 6,\n  \"unique_heights_seen\": 78,\n  \"hash_replacements_observed\": 0,\n  \"parent_link_breaks_observed\": 0\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "docs/evidence/bot-network-compatibility/bot-bohr-testnet-rpc-capability.json",
+      "sha256": "447b1d81c40ee6687b09208190b90ae2a346913da6a284fc2e3849e57d55392a",
+      "bytes": 25981
+    },
+    {
+      "path": "docs/evidence/bot-network-compatibility/bot-bohr-testnet-range-cap.json",
+      "sha256": "3ed0037bd236da6c7f8d000130f1431bc8f9bba4394730a38e79bc0b971c5366",
+      "bytes": 1182
+    },
+    {
+      "path": "docs/evidence/bot-network-compatibility/bot-bohr-testnet-head-stability.json",
+      "sha256": "06c679bfe000f0f7a4ee226f01dcedb2ffbe68e9f33ee8ac01236b91d67d5415",
+      "bytes": 26922
+    }
+  ],
+  "completed_at": "2026-10-17T15:29:59Z"
+}

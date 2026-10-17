@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, usePublicClient, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { isAddress, parseEventLogs, type Address } from "viem";
-import { escrowAbi, escrowAddress, NATIVE_TOKEN } from "@/lib/contract";
+import { escrowAbi, escrowAddress, escrowConfigured, NATIVE_TOKEN } from "@/lib/contract";
+import { selectedChain, selectedChainId } from "@/lib/chain";
 import { useTokenMeta } from "@/hooks/useTokenMeta";
-import { parseTokenAmount } from "@/lib/format";
+import { useEscrowWrite } from "@/hooks/useEscrowWrite";
+import { TxStatus } from "@/components/TxStatus";
+import { formatTokenAmount, parseTokenAmount } from "@/lib/format";
 
 interface MilestoneInput {
   key: number;
@@ -21,8 +24,8 @@ function newMilestone(): MilestoneInput {
 export default function CreateAgreementPage() {
   const router = useRouter();
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient({ chainId: selectedChainId });
+  const { state: txState, write, correctChain, switchToSelectedChain } = useEscrowWrite();
 
   const [seller, setSeller] = useState("");
   const [arbiter, setArbiter] = useState("");
@@ -34,7 +37,17 @@ export default function CreateAgreementPage() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const effectiveToken = tokenType === "native" ? NATIVE_TOKEN : (tokenAddress as Address);
-  const tokenMeta = useTokenMeta(tokenType === "erc20" && isAddress(tokenAddress) ? (tokenAddress as Address) : undefined);
+  const tokenMeta = useTokenMeta(
+    tokenType === "erc20" && isAddress(tokenAddress) ? (tokenAddress as Address) : undefined,
+  );
+
+  const milestoneValues = milestones.map((m) =>
+    m.amount && !Number.isNaN(Number(m.amount)) && Number(m.amount) > 0
+      ? parseTokenAmount(m.amount, tokenMeta.decimals)
+      : 0n,
+  );
+  const totalRaw = milestoneValues.reduce((sum, v) => sum + v, 0n);
+  const fmtAmount = (raw: bigint) => formatTokenAmount(raw, tokenMeta.decimals);
 
   function updateMilestone(key: number, amount: string) {
     setMilestones((prev) => prev.map((m) => (m.key === key ? { ...m, amount } : m)));
@@ -50,19 +63,27 @@ export default function CreateAgreementPage() {
 
   function validate(): string | null {
     if (!isConnected || !address) return "Connect a wallet first.";
+    if (!escrowConfigured) {
+      return `No escrow contract is configured for ${selectedChain.name} (chain ${selectedChainId}).`;
+    }
+    if (!correctChain) {
+      return `Wrong network: switch your wallet to ${selectedChain.name} (chain ${selectedChainId}) before creating an agreement.`;
+    }
     if (!isAddress(seller)) return "Enter a valid seller address.";
     if (!isAddress(arbiter)) return "Enter a valid arbiter address.";
     if (seller.toLowerCase() === address.toLowerCase()) return "Seller can't be you (the buyer).";
-    if (arbiter.toLowerCase() === address.toLowerCase() || arbiter.toLowerCase() === seller.toLowerCase()) {
+    if (
+      arbiter.toLowerCase() === address.toLowerCase() ||
+      arbiter.toLowerCase() === seller.toLowerCase()
+    ) {
       return "Arbiter must be a neutral third party, not the buyer or seller.";
     }
     if (tokenType === "erc20" && !isAddress(tokenAddress)) return "Enter a valid ERC-20 token address.";
-    if (milestones.length === 0) return "Add at least one milestone.";
     for (const m of milestones) {
       const value = Number(m.amount);
       if (!m.amount || Number.isNaN(value) || value <= 0) return "Every milestone needs a positive amount.";
     }
-    return null;
+    return totalRaw > 0n ? null : "Milestone amounts don't add up to anything yet.";
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,24 +102,27 @@ export default function CreateAgreementPage() {
 
     setSubmitting(true);
     try {
-      const milestoneAmounts = milestones.map((m) => parseTokenAmount(m.amount, tokenMeta.decimals));
       const fundingDeadline = deadline ? Math.floor(new Date(deadline).getTime() / 1000) : 0;
 
-      const hash = await writeContractAsync({
+      const hash = await write({
         address: escrowAddress,
         abi: escrowAbi,
         functionName: "createAgreement",
-        args: [seller as Address, arbiter as Address, effectiveToken, milestoneAmounts, fundingDeadline],
+        args: [seller as Address, arbiter as Address, effectiveToken, milestoneValues, fundingDeadline],
       });
 
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      const events = parseEventLogs({ abi: escrowAbi, eventName: "AgreementCreated", logs: receipt.logs });
+      const receipt = await publicClient.getTransactionReceipt({ hash });
+      const events = parseEventLogs({
+        abi: escrowAbi,
+        eventName: "AgreementCreated",
+        logs: receipt.logs,
+      });
       const id = events[0]?.args.id;
 
       if (id !== undefined) {
         router.push(`/agreement/${id.toString()}`);
       } else {
-        router.push("/");
+        router.push("/dashboard");
       }
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Transaction failed.");
@@ -108,22 +132,47 @@ export default function CreateAgreementPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl">
-      <h1 className="mb-6 text-xl font-semibold">New escrow agreement</h1>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold">New escrow agreement</h1>
+        <p className="mt-1 text-sm text-white/50">
+          Define the payout plan, add a seller and a neutral arbiter. Funding happens in the next
+          step. Creating an agreement moves no funds.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Seller address">
+      {!correctChain && isConnected && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <span>
+            Wrong network. Transactions are blocked until your wallet is on {selectedChain.name} (chain{" "}
+            {selectedChainId}).
+          </span>
+          <button
+            type="button"
+            onClick={() => void switchToSelectedChain()}
+            className="btn-ghost px-3 py-1.5"
+          >
+            Switch network
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="card space-y-5 p-6">
+        <Field label="Seller address" hint="Receives milestone payouts as you approve them.">
           <input
-            className="input"
+            className="input font-mono"
             placeholder="0x…"
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
           />
         </Field>
 
-        <Field label="Arbiter address" hint="A neutral third party who resolves disputes.">
+        <Field
+          label="Arbiter address"
+          hint="A neutral third party who resolves disputes. Cannot be you or the seller."
+        >
           <input
-            className="input"
+            className="input font-mono"
             placeholder="0x…"
             value={arbiter}
             onChange={(e) => setArbiter(e.target.value)}
@@ -137,7 +186,7 @@ export default function CreateAgreementPage() {
               onClick={() => setTokenType("native")}
               className={`chip ${tokenType === "native" ? "chip-active" : ""}`}
             >
-              Native NEX
+              Native {selectedChain.nativeCurrency.symbol}
             </button>
             <button
               type="button"
@@ -149,7 +198,7 @@ export default function CreateAgreementPage() {
           </div>
           {tokenType === "erc20" && (
             <input
-              className="input mt-2"
+              className="input mt-2 font-mono"
               placeholder="Token contract address (0x…)"
               value={tokenAddress}
               onChange={(e) => setTokenAddress(e.target.value)}
@@ -161,7 +210,7 @@ export default function CreateAgreementPage() {
           <div className="space-y-2">
             {milestones.map((m, i) => (
               <div key={m.key} className="flex items-center gap-2">
-                <span className="w-6 shrink-0 text-sm text-white/40">{i + 1}.</span>
+                <span className="w-8 shrink-0 text-sm text-white/40">{i + 1}.</span>
                 <input
                   className="input"
                   type="number"
@@ -175,9 +224,16 @@ export default function CreateAgreementPage() {
                   type="button"
                   onClick={() => removeMilestone(m.key)}
                   disabled={milestones.length === 1}
-                  className="shrink-0 rounded-md px-2 py-1 text-sm text-white/40 hover:text-white/80 disabled:opacity-30"
+                  className="shrink-0 rounded-lg px-2 py-1.5 text-sm text-white/40 transition hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-white/40"
                 >
-                  ✕
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M6 6l12 12M18 6L6 18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               </div>
             ))}
@@ -187,7 +243,10 @@ export default function CreateAgreementPage() {
           </button>
         </Field>
 
-        <Field label="Funding deadline" hint="Optional — leave blank for none.">
+        <Field
+          label="Funding deadline"
+          hint="Optional — anyone can cancel after this passes. Leave blank for none."
+        >
           <input
             className="input"
             type="datetime-local"
@@ -196,18 +255,43 @@ export default function CreateAgreementPage() {
           />
         </Field>
 
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-white/50">Total to fund</span>
+            <span className="font-semibold">
+              {totalRaw > 0n ? `${fmtAmount(totalRaw)} ${tokenMeta.symbol}` : "—"}
+            </span>
+          </div>
+          <div className="mt-1 flex justify-between text-xs text-white/40">
+            <span>Protocol fee (1%, taken from seller payouts)</span>
+            <span>
+              ≈ {totalRaw > 0n ? `${fmtAmount((totalRaw * 100n) / 10_000n)} ${tokenMeta.symbol}` : "—"}
+            </span>
+          </div>
+        </div>
+
         {formError && (
-          <p className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
             {formError}
           </p>
         )}
 
+        <TxStatus state={txState} />
+
         <button
           type="submit"
-          disabled={submitting || !isConnected}
-          className="w-full rounded-md bg-indigo-500 py-2.5 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-50"
+          disabled={submitting || !isConnected || !escrowConfigured || !correctChain}
+          className="btn-primary w-full py-3"
         >
-          {submitting ? "Creating…" : isConnected ? "Create agreement" : "Connect a wallet first"}
+          {submitting
+            ? "Creating…"
+            : !isConnected
+              ? "Connect a wallet first"
+              : !escrowConfigured
+                ? "Contract not configured"
+                : !correctChain
+                  ? `Switch to ${selectedChain.name} to continue`
+                  : "Create agreement"}
         </button>
       </form>
     </div>

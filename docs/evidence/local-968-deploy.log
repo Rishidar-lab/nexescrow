@@ -1,0 +1,43 @@
+Compiling 1 files with Solc 0.8.26
+Solc 0.8.26 finished in 5.81s
+Compiler run successful!
+Script ran successfully.
+
+== Return ==
+escrow: contract NexusEscrow 0x5FbDB2315678afecb367f032d93F642f64180aa3
+
+== Logs ==
+  Chain ID: 968
+  Deployer: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  Owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  Fee recipient: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  Testnet/non-mainnet deployment (good).
+  
+  NexusEscrow deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  Next: set NEXT_PUBLIC_ESCROW_ADDRESS_968 in the frontend env
+        and NEXT_PUBLIC_DEPLOY_BLOCK_968 to the deployment block.
+  Reminder: this contract is UNAUDITED. Do not present it as production ready.
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 968
+
+Estimated gas price: 2.000000001 gwei
+
+Estimated total gas used for script: 1967915
+
+Estimated amount required: 0.003935830001967915 ETH
+
+==========================
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+
+Transactions saved to: /home/parzival/nexescrow/contracts/broadcast/DeployNexusEscrow.s.sol/968/run-latest.json
+
+Sensitive values saved to: /home/parzival/nexescrow/contracts/cache/DeployNexusEscrow.s.sol/968/run-latest.json
+

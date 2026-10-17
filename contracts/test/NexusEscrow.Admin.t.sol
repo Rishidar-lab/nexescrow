@@ -150,4 +150,98 @@ contract NexusEscrowAdminTest is TestBase {
 
         assertEq(escrow.owner(), newOwner);
     }
+
+    // ---------------------------------------------------------------------
+    // Fee configuration edge cases
+    // ---------------------------------------------------------------------
+
+    function test_SetProtocolFee_CapBoundary_ExactCapAllowed() public {
+        uint16 cap = escrow.MAX_FEE_BPS();
+        vm.prank(owner);
+        escrow.setProtocolFee(cap);
+        assertEq(escrow.protocolFeeBps(), 1_000);
+    }
+
+    function test_SetProtocolFee_NoBypassAboveCap() public {
+        vm.prank(owner);
+        vm.expectRevert(NexusEscrow.FeeTooHigh.selector);
+        escrow.setProtocolFee(1_001);
+
+        vm.prank(owner);
+        vm.expectRevert(NexusEscrow.FeeTooHigh.selector);
+        escrow.setProtocolFee(type(uint16).max);
+
+        assertEq(escrow.protocolFeeBps(), 100);
+    }
+
+    function test_SetProtocolFee_DuringActiveAgreement_DoesNotAffectInFlight() public {
+        uint128[] memory milestones = _threeMilestones();
+        uint256 id = _createAndFundNative(milestones);
+
+        vm.prank(buyer);
+        escrow.approveMilestone(id); // M0 at 1% (default)
+
+        vm.prank(owner);
+        escrow.setProtocolFee(900); // raise mid-agreement
+
+        (,,,,, uint16 storedFee,,,,,) = escrow.agreements(id);
+        assertEq(storedFee, 100, "in-flight fee mutated");
+
+        uint256 sellerBefore = seller.balance;
+        vm.prank(buyer);
+        escrow.approveMilestone(id); // M1 must still pay 1% fee
+
+        uint256 expectedFee = (uint256(milestones[1]) * 100) / 10_000;
+        assertEq(seller.balance - sellerBefore, milestones[1] - expectedFee);
+
+        // A new agreement picks up the new fee.
+        uint256 newId = _createNativeAgreement(_singleMilestone(1 ether));
+        (,,,,, uint16 newFee,,,,,) = escrow.agreements(newId);
+        assertEq(newFee, 900);
+    }
+
+    function test_SetFeeRecipient_AccruedFeesFollowCurrentRecipient() public {
+        uint256 id = _createAndFundNative(_singleMilestone(1 ether));
+        vm.prank(buyer);
+        escrow.approveMilestone(id);
+
+        uint256 accrued = escrow.accruedFees(address(0));
+        address rotated = makeAddr("rotatedRecipient");
+
+        vm.prank(owner);
+        escrow.setFeeRecipient(rotated);
+
+        uint256 before = rotated.balance;
+        vm.prank(rotated);
+        escrow.withdrawFees(address(0));
+        assertEq(rotated.balance, before + accrued);
+    }
+
+    function test_WithdrawFees_WorksWhilePaused() public {
+        uint256 id = _createAndFundNative(_singleMilestone(1 ether));
+        vm.prank(buyer);
+        escrow.approveMilestone(id);
+
+        vm.prank(owner);
+        escrow.pause();
+
+        uint256 fee = escrow.accruedFees(address(0));
+        uint256 before = feeRecipient.balance;
+        vm.prank(feeRecipient);
+        escrow.withdrawFees(address(0));
+        assertEq(feeRecipient.balance, before + fee);
+    }
+
+    function test_WithdrawFees_TwiceRevertsSecondTime() public {
+        uint256 id = _createAndFundNative(_singleMilestone(1 ether));
+        vm.prank(buyer);
+        escrow.approveMilestone(id);
+
+        vm.prank(feeRecipient);
+        escrow.withdrawFees(address(0));
+
+        vm.prank(feeRecipient);
+        vm.expectRevert(NexusEscrow.NothingToWithdraw.selector);
+        escrow.withdrawFees(address(0));
+    }
 }

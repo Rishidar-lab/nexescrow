@@ -1,0 +1,29 @@
+UTC=2026-10-08T17:53:56Z
+$ pnpm lint
+$ eslint
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+tsc_exit=0
+$ next build
+  Finished TypeScript in 3.5s ...
+  Collecting page data using 8 workers ...
+  Generating static pages using 8 workers (0/6) ...
+  Generating static pages using 8 workers (1/6) 
+  Generating static pages using 8 workers (2/6) 
+  Generating static pages using 8 workers (4/6) 
+✓ Generating static pages using 8 workers (6/6) in 600ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /agreement/[id]
+├ ○ /create
+└ ○ /dashboard
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+UTC=2026-10-08T17:54:15Z

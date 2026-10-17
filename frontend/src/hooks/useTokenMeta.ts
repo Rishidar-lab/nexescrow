@@ -4,7 +4,7 @@ import { useReadContracts } from "wagmi";
 import type { Address } from "viem";
 import { erc20Abi } from "@/lib/erc20Abi";
 import { NATIVE_TOKEN } from "@/lib/contract";
-import { nexusL1 } from "@/lib/chain";
+import { selectedChain, selectedChainId } from "@/lib/chain";
 
 export interface TokenMeta {
   symbol: string;
@@ -18,14 +18,19 @@ export function useTokenMeta(token: Address | undefined): TokenMeta {
 
   const { data, isLoading } = useReadContracts({
     contracts: [
-      { address: token, abi: erc20Abi, functionName: "symbol" },
-      { address: token, abi: erc20Abi, functionName: "decimals" },
+      { address: token, abi: erc20Abi, functionName: "symbol", chainId: selectedChainId },
+      { address: token, abi: erc20Abi, functionName: "decimals", chainId: selectedChainId },
     ],
     query: { enabled: !isNative && !!token },
   });
 
   if (isNative) {
-    return { symbol: nexusL1.nativeCurrency.symbol, decimals: 18, isNative: true, isLoading: false };
+    return {
+      symbol: selectedChain.nativeCurrency.symbol,
+      decimals: selectedChain.nativeCurrency.decimals,
+      isNative: true,
+      isLoading: false,
+    };
   }
 
   return {

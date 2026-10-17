@@ -1,0 +1,36 @@
+No files changed, compilation skipped
+Script ran successfully.
+
+== Return ==
+escrow: contract NexusEscrow 0x6448668AE9cBBC41617C2BD5e4F29279320A2700
+
+== Logs ==
+  Chain ID: 968
+  Deployer: 0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af
+  Deployer balance (wei): 500000000000000000
+  Owner: 0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af
+  Fee recipient: 0xBd44098dF1cE55e4604b8bdC8E4454Ee669364af
+  Contract is UNAUDITED; testnet use only.
+  NexusEscrow deployed to: 0x6448668AE9cBBC41617C2BD5e4F29279320A2700
+  Set NEXT_PUBLIC_ESCROW_ADDRESS_968 and NEXT_PUBLIC_DEPLOY_BLOCK_968 in the frontend.
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 968
+
+Estimated gas price: 20 gwei
+
+Estimated total gas used for script: 1967915
+
+Estimated amount required: 0.0393583 ETH
+
+==========================
+
+SIMULATION COMPLETE. To broadcast these transactions, add --broadcast and wallet configuration(s) to the previous command. See forge script --help for more.
+
+Transactions saved to: /home/parzival/nexescrow/contracts/broadcast/DeployNexusEscrowBOT.s.sol/968/dry-run/run-latest.json
+
+Sensitive values saved to: /home/parzival/nexescrow/contracts/cache/DeployNexusEscrowBOT.s.sol/968/dry-run/run-latest.json
+

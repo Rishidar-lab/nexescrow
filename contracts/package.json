@@ -6,7 +6,8 @@
   "scripts": {
     "build": "forge build",
     "test": "forge test -vvv",
-    "coverage": "forge coverage",
+    "test:ci": "FOUNDRY_PROFILE=ci forge test -vvv",
+    "coverage": "forge coverage --ir-minimum --report summary",
     "fmt": "forge fmt"
   },
   "dependencies": {

@@ -1,0 +1,10 @@
+UTC_START=2026-10-08T17:51:45Z
+simulated chainId=677
+=== TEST 1: no ALLOW flag — must revert ===
+    └─ ← [Revert] MAINNET DEPLOYMENT BLOCKED: set ALLOW_MAINNET_DEPLOYMENT=true only after independent security review
+Error: script failed: MAINNET DEPLOYMENT BLOCKED: set ALLOW_MAINNET_DEPLOYMENT=true only after independent security review
+=== TEST 2: ALLOW_MAINNET_DEPLOYMENT=true, dry-run, NO --broadcast ===
+  WARNING: BOT Chain MAINNET (677). Real funds. Unaudited.
+  NexusEscrow deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+Chain 677
+UTC_END=2026-10-08T17:51:53Z

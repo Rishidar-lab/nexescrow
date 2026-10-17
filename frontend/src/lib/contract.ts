@@ -1,10 +1,15 @@
 import type { Address } from "viem";
 import { nexusEscrowAbi } from "./nexusEscrowAbi";
+import { escrowAddress as selectedEscrowAddress } from "./chain";
 
 export const escrowAbi = nexusEscrowAbi;
 
-export const escrowAddress = (process.env.NEXT_PUBLIC_ESCROW_ADDRESS ||
-  "0x0000000000000000000000000000000000000000") as Address;
+// Address of the escrow contract for the chain this build is configured for.
+// Zero address means "not configured for this chain" — the UI must disable
+// writes and say so rather than sending a transaction into the void.
+export const escrowAddress = selectedEscrowAddress;
+
+export { escrowConfigured, selectedChain, selectedChainId } from "./chain";
 
 export const NATIVE_TOKEN = "0x0000000000000000000000000000000000000000" as Address;
 

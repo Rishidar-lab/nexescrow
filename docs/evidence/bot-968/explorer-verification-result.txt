@@ -1,0 +1,23 @@
+UTC=2026-10-08T21:05:56Z
+=== post-verification v2 ===
+HTTP=200
+{
+  "is_verified": true,
+  "language": "solidity",
+  "compiler_version": "v0.8.26+commit.8a97fa7a",
+  "optimization_enabled": true,
+  "evm_version": "cancun",
+  "verified_at": "2026-10-08T21:05:40.963217Z",
+  "name": "NexusEscrow"
+}
+=== etherscan-compatible ===
+{
+  "status": "1",
+  "ContractName": "NexusEscrow",
+  "CompilerVersion": "v0.8.26+commit.8a97fa7a",
+  "OptimizationUsed": "true",
+  "EVMVersion": "cancun",
+  "Verified": true
+}
+explorer URL: https://scan.bohr.life/address/0x6448668ae9cbbc41617c2bd5e4f29279320a2700
+UTC=2026-10-08T21:05:58Z
