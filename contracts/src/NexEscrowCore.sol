@@ -6,6 +6,7 @@ import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/Sig
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { INexEscrowMigrationReceiver } from "./INexEscrowMigrationReceiver.sol";
 
 /// @title NexEscrowCore (Demo 1)
 /// @notice Demo 1 settlement kernel. Legacy `NexusEscrow` (Demo 0) is untouched and
@@ -19,8 +20,10 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 ///      - C (§5-6): dispute authority via a committed resolver address (push model;
 ///        QuorumResolver is a reference M-of-N IResolver module), on-chain evidence-hash
 ///        events, and an explicit optional appellate path.
-///      Still deferred: bilateral migration (§9, D), x402/AP2/ERC-8004 adapters (§8, E) and
-///      the production indexer (§10, F). This kernel takes NO protocol fee, so
+///      - D (§9): user-consented, bilateral, atomic migration of remaining principal to a
+///        compatible destination (INexEscrowMigrationReceiver); no proxy, no admin sweep.
+///      Still deferred: x402/AP2/ERC-8004 adapters (§8, E) and the production indexer (§10,
+///      F). This kernel takes NO protocol fee, so
 ///      every unit funded is eventually withdrawable by the buyer or the seller only.
 ///      Payouts are PULL, not push: settlement credits `pendingWithdrawals` and a separate
 ///      `withdraw` moves funds, so a hostile recipient can never block finalization and no
@@ -52,7 +55,8 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         None,
         Activated,
         Funded,
-        Completed
+        Completed,
+        Migrated
     }
 
     struct Agreement {
@@ -119,6 +123,10 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     uint16 public constant BPS_DENOMINATOR = 10_000;
     uint8 public constant MAX_MILESTONES = 50;
     uint40 public constant MAX_WINDOW = 365 days;
+
+    bytes32 public constant MIGRATION_TYPEHASH = keccak256(
+        "MigrationAuthorization(uint256 agreementId,address target,bytes32 targetCodehash,uint8 fromMilestone,uint256 remainingPrincipal,bytes32 remainingMilestonesHash)"
+    );
 
     // =====================================================================
     // Storage
@@ -190,6 +198,7 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         uint128 buyerAmount,
         uint128 sellerAmount
     );
+    event AgreementMigrated(uint256 indexed id, address indexed target, uint256 remainingPrincipal);
 
     // =====================================================================
     // Errors
@@ -233,6 +242,10 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     error NotAppealed();
     error NoRulingToFinalize();
     error NotFinalizableYet();
+    error ZeroTarget();
+    error SelfTarget();
+    error MigrationActiveDispute();
+    error MigrationRejected();
 
     constructor() EIP712("NexEscrowCore", "1") { }
 
@@ -591,6 +604,80 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     }
 
     // =====================================================================
+    // Tranche D — user-consented migration
+    // =====================================================================
+
+    /// @notice EIP-712 digest both parties sign to authorize migrating a funded agreement to
+    ///         `target`. It binds the destination, its current codehash (whitepaper §9.1 —
+    ///         the version is signed) and the exact remaining state, so any change to the
+    ///         target's code or the agreement's state invalidates the signatures.
+    function hashMigration(uint256 id, address target) public view returns (bytes32) {
+        return _hashTypedDataV4(_migrationStructHash(id, target));
+    }
+
+    /// @notice The unsettled milestone amounts, from the next milestone onward.
+    function remainingMilestonesOf(uint256 id) external view returns (uint128[] memory) {
+        return _remainingMilestones(id, nextMilestoneOf[id]);
+    }
+
+    /// @notice Migrate a funded agreement's REMAINING principal and unsettled milestones to a
+    ///         compatible destination, authorized by BOTH parties (whitepaper §9).
+    /// @dev No proxy, no admin, no unilateral sweep: migration needs both signatures, and the
+    ///      destination must implement INexEscrowMigrationReceiver and accept atomically — the
+    ///      principal arrives at the destination or the whole call reverts (§9.1). The
+    ///      destination receives the parties, asset, remaining principal and remaining
+    ///      milestone schedule unchanged; already-finalized milestones stay as immutable
+    ///      history here (invariant 6). A milestone under active dispute must be resolved
+    ///      first. There is no protocol fee, so nothing but principal is ever moved.
+    function migrate(
+        uint256 id,
+        address target,
+        bytes calldata buyerSignature,
+        bytes calldata sellerSignature
+    ) external nonReentrant {
+        Agreement storage a = agreements[id];
+        if (a.status != AgreementStatus.Funded) revert NotFunded();
+        if (target == address(0)) revert ZeroTarget();
+        if (target == address(this)) revert SelfTarget();
+        uint8 from = nextMilestoneOf[id];
+        if (_milestones[id][from].status != MilestoneStatus.Pending) {
+            revert MigrationActiveDispute();
+        }
+
+        bytes32 digest = hashMigration(id, target);
+        if (!SignatureChecker.isValidSignatureNow(a.buyer, digest, buyerSignature)) {
+            revert InvalidBuyerSignature();
+        }
+        if (!SignatureChecker.isValidSignatureNow(a.seller, digest, sellerSignature)) {
+            revert InvalidSellerSignature();
+        }
+
+        uint256 remaining = escrowedOf[id];
+        uint128[] memory remainingMilestones = _remainingMilestones(id, from);
+        address asset = a.settlementAsset;
+        address buyer_ = a.buyer;
+        address seller_ = a.seller;
+
+        // Effects before interaction (CEI) + nonReentrant.
+        escrowedOf[id] = 0;
+        a.status = AgreementStatus.Migrated;
+
+        bytes4 ret;
+        if (asset == address(0)) {
+            ret = INexEscrowMigrationReceiver(target).onMigration{ value: remaining }(
+                id, buyer_, seller_, asset, remaining, remainingMilestones
+            );
+        } else {
+            IERC20(asset).safeTransfer(target, remaining);
+            ret = INexEscrowMigrationReceiver(target)
+                .onMigration(id, buyer_, seller_, asset, remaining, remainingMilestones);
+        }
+        if (ret != INexEscrowMigrationReceiver.onMigration.selector) revert MigrationRejected();
+
+        emit AgreementMigrated(id, target, remaining);
+    }
+
+    // =====================================================================
     // Internal
     // =====================================================================
 
@@ -717,6 +804,34 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         if (nextMilestoneOf[id] == _milestones[id].length) {
             agreements[id].status = AgreementStatus.Completed;
             emit AgreementCompleted(id);
+        }
+    }
+
+    function _migrationStructHash(uint256 id, address target) internal view returns (bytes32) {
+        uint8 from = nextMilestoneOf[id];
+        uint128[] memory remainingMilestones = _remainingMilestones(id, from);
+        return keccak256(
+            abi.encode(
+                MIGRATION_TYPEHASH,
+                id,
+                target,
+                target.codehash,
+                from,
+                escrowedOf[id],
+                keccak256(abi.encode(remainingMilestones))
+            )
+        );
+    }
+
+    function _remainingMilestones(uint256 id, uint8 from)
+        internal
+        view
+        returns (uint128[] memory arr)
+    {
+        uint256 total = _milestones[id].length;
+        arr = new uint128[](total - from);
+        for (uint256 i = from; i < total; ++i) {
+            arr[i - from] = _milestones[id][i].amount;
         }
     }
 }
