@@ -22,8 +22,10 @@ import { INexEscrowMigrationReceiver } from "./INexEscrowMigrationReceiver.sol";
 ///        events, and an explicit optional appellate path.
 ///      - D (§9): user-consented, bilateral, atomic migration of remaining principal to a
 ///        compatible destination (INexEscrowMigrationReceiver); no proxy, no admin sweep.
-///      Still deferred: x402/AP2/ERC-8004 adapters (§8, E) and the production indexer (§10,
-///      F). This kernel takes NO protocol fee, so
+///      - E (§8): external, read-only metadata adapters (x402/AP2/ERC-8004, in src/adapters)
+///        bind agent payment/identity metadata to an agreement. They never move principal and
+///        the core has no dependency on them — it only exposes `partiesOf` for them to read.
+///      Still deferred: the production indexer (§10, F). This kernel takes NO protocol fee, so
 ///      every unit funded is eventually withdrawable by the buyer or the seller only.
 ///      Payouts are PULL, not push: settlement credits `pendingWithdrawals` and a separate
 ///      `withdraw` moves funds, so a hostile recipient can never block finalization and no
@@ -271,6 +273,18 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
     /// @notice The revealed milestone schedule for a funded agreement.
     function milestonesOf(uint256 id) external view returns (Milestone[] memory) {
         return _milestones[id];
+    }
+
+    /// @notice The parties and lifecycle status of an agreement — a stable read surface for
+    ///         external metadata adapters (src/adapters). `status == None` means the
+    ///         agreement does not exist. This is read-only and grants no fund control.
+    function partiesOf(uint256 id)
+        external
+        view
+        returns (address buyer, address seller, AgreementStatus status)
+    {
+        Agreement storage a = agreements[id];
+        return (a.buyer, a.seller, a.status);
     }
 
     /// @notice Canonical commitment for a milestone schedule (what the intent commits to).
