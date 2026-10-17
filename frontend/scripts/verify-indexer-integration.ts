@@ -75,7 +75,7 @@ async function main() {
   const server = createServer((req, res) => {
     requests.push(req.url ?? "");
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify([valid, { ...valid, chainId: 677, id: "1" }, { ...valid, contractAddress: seller, id: "2" }, { id: "3", buyer, seller, arbiter }]));
+    res.end(JSON.stringify([valid, valid, { ...valid, chainId: 677, id: "1" }, { ...valid, contractAddress: seller, id: "2" }, { id: "3", buyer, seller, arbiter }]));
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   try {
@@ -83,13 +83,15 @@ async function main() {
     assert(endpoint && typeof endpoint !== "string");
     const adapter = createHttpIndexerAdapter({ baseUrl: `http://127.0.0.1:${endpoint.port}`, chainId: 968, contractAddress: address });
     const rows = await adapter.discoverAgreementsForParticipant(buyer);
+    // One in-scope row is duplicated and must collapse; wrong chain, wrong
+    // contract and legacy unscoped rows must be rejected.
     assert.deepEqual(rows.map(row => String(row.id)), ["0"]);
     assert.equal(requests.length, 1);
     assert(requests[0].startsWith(`/v1/chains/968/contracts/${address.toLowerCase()}/agreements?participant=`));
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   }
-  console.log(JSON.stringify({ status: "PASS", source: "committed historical Bohr fixture + local HTTP server", replayStages: ["cold process", "new process with persisted checkpoint", "new process with cleared checkpoint"], agreementEvents: outputs[0].ids.length, fixtureLogs: outputs[0].fixtureLogs, rangesPerReplay: outputs[0].ranges, httpScope: "valid retained; wrong chain, wrong contract and legacy unscoped rows rejected", browser: "NOT TESTED", liveRpc: "NOT TESTED", transactions: 0 }, null, 2));
+  console.log(JSON.stringify({ status: "PASS", source: "committed historical Bohr fixture + local HTTP server", replayStages: ["cold process", "new process with persisted checkpoint", "new process with cleared checkpoint"], agreementEvents: outputs[0].ids.length, fixtureLogs: outputs[0].fixtureLogs, rangesPerReplay: outputs[0].ranges, httpScope: "valid retained and duplicate collapsed; wrong chain, wrong contract and legacy unscoped rows rejected", browser: "NOT TESTED", liveRpc: "NOT TESTED", transactions: 0 }, null, 2));
 }
 
 await (process.argv.includes("--replay") ? replay() : main());
