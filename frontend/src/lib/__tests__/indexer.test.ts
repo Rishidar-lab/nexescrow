@@ -21,6 +21,10 @@ const { isDiscoveryRowForScope, isValidDiscoveryRow, isValidEventRow } = await i
   new URL("../indexer/validate.ts", import.meta.url).href
 );
 
+const { dedupeEvents, dedupeDiscoveries } = await import(
+  new URL("../indexer/types.ts", import.meta.url).href
+);
+
 const ADDRESS_A = "0x1111111111111111111111111111111111111111";
 const ADDRESS_B = "0x2222222222222222222222222222222222222222";
 const ADDRESS_C = "0x3333333333333333333333333333333333333333";
@@ -183,4 +187,60 @@ test("every field the event mapper reads is covered by validation", () => {
     delete broken[field];
     assert.equal(isValidEventRow(broken), false, `missing ${field} must be rejected`);
   }
+});
+
+// ── deduplication ───────────────────────────────────────────────────────────
+//
+// Both adapters validate rows, but only the log-scan adapter was idempotent: an
+// HTTP indexer that repeated a row surfaced duplicate ActivityTimeline entries
+// (React `key={event.id}` collision) and duplicate dashboard rows. These assert
+// the shared helpers that http.ts now applies to both result paths.
+
+const eventRecord = (overrides: Record<string, unknown> = {}) => {
+  const base = {
+    chainId: 968,
+    contractAddress: ADDRESS_A,
+    transactionHash: HASH,
+    logIndex: 0,
+    ...overrides,
+  };
+  return {
+    ...base,
+    id: `${base.chainId}:${String(base.contractAddress).toLowerCase()}:${String(base.transactionHash).toLowerCase()}:${base.logIndex}`,
+    blockNumber: 100n,
+    blockHash: HASH,
+    name: "Funded",
+    args: { id: "7" },
+  };
+};
+
+test("CRITICAL: dedupeEvents collapses rows that share a canonical identity", () => {
+  const deduped = dedupeEvents([eventRecord(), eventRecord()]);
+  assert.equal(deduped.length, 1, "two identical events must collapse to one");
+});
+
+test("dedupeEvents keeps genuinely distinct events and preserves order", () => {
+  const first = eventRecord({ logIndex: 0 });
+  const second = eventRecord({ logIndex: 1 });
+  const deduped = dedupeEvents([first, second, eventRecord({ logIndex: 0 })]);
+  assert.deepEqual(
+    deduped.map((e: { logIndex: number }) => e.logIndex),
+    [0, 1],
+    "distinct logIndex rows are kept, duplicate dropped, order preserved",
+  );
+});
+
+test("CRITICAL: dedupeDiscoveries collapses repeated agreement ids", () => {
+  const row = { id: 7n, buyer: ADDRESS_A, seller: ADDRESS_B, arbiter: ADDRESS_C };
+  const deduped = dedupeDiscoveries([row, { ...row }]);
+  assert.equal(deduped.length, 1, "the same agreement id must not appear twice");
+});
+
+test("dedupeDiscoveries keeps distinct ids and preserves order", () => {
+  const mk = (id: bigint) => ({ id, buyer: ADDRESS_A, seller: ADDRESS_B, arbiter: ADDRESS_C });
+  const deduped = dedupeDiscoveries([mk(9n), mk(7n), mk(9n)]);
+  assert.deepEqual(
+    deduped.map((d: { id: bigint }) => d.id),
+    [9n, 7n],
+  );
 });

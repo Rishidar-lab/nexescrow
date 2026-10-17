@@ -1,6 +1,8 @@
 import { isDiscoveryRowForScope, isValidEventRow } from "./validate";
 import type { Address, Hex } from "viem";
 import {
+  dedupeDiscoveries,
+  dedupeEvents,
   eventId,
   type AgreementDiscovery,
   type AgreementIndexAdapter,
@@ -18,7 +20,10 @@ import {
  *
  * Events carry their full identity; the adapter re-checks chainId and
  * contractAddress and drops anything that does not match, so a misconfigured
- * indexer cannot leak another chain's agreements into this UI.
+ * indexer cannot leak another chain's agreements into this UI. Results are also
+ * deduplicated by canonical identity, so a producer that repeats a row cannot
+ * surface duplicate timeline entries, duplicate dashboard rows, or redundant
+ * contract reads (the log-scan adapter already guarantees this).
  */
 
 interface WireEvent {
@@ -80,16 +85,18 @@ export function createHttpIndexerAdapter(options: HttpIndexerOptions): Agreement
       // inject another chain's agreements. Everything is validated before use and
       // anything malformed is dropped rather than partially trusted.
       if (!Array.isArray(wire)) return [];
-      return wire
-        .filter((row): row is WireDiscovery =>
-          isDiscoveryRowForScope(row, chainId, contractAddress),
-        )
-        .map((row) => ({
-          id: BigInt(row.id),
-          buyer: row.buyer as Address,
-          seller: row.seller as Address,
-          arbiter: row.arbiter as Address,
-        }));
+      return dedupeDiscoveries(
+        wire
+          .filter((row): row is WireDiscovery =>
+            isDiscoveryRowForScope(row, chainId, contractAddress),
+          )
+          .map((row) => ({
+            id: BigInt(row.id),
+            buyer: row.buyer as Address,
+            seller: row.seller as Address,
+            arbiter: row.arbiter as Address,
+          })),
+      );
     },
 
     async eventsForAgreement(agreementId: bigint): Promise<EscrowEventRecord[]> {
@@ -98,29 +105,31 @@ export function createHttpIndexerAdapter(options: HttpIndexerOptions): Agreement
         timeoutMs,
       );
       if (!Array.isArray(wire)) return [];
-      return wire
-        .filter(
-          (row): row is WireEvent & { chainId: number; contractAddress: string; blockNumber: string } =>
-            isValidEventRow(row) &&
-            row.chainId === chainId &&
-            row.contractAddress.toLowerCase() === contractAddress.toLowerCase(),
-        )
-        .map((row) => {
-          const identity = {
-            chainId,
-            contractAddress,
-            transactionHash: row.transactionHash as Hex,
-            logIndex: row.logIndex,
-          };
-          return {
-            ...identity,
-            id: eventId(identity),
-            blockNumber: BigInt(row.blockNumber),
-            blockHash: row.blockHash as Hex,
-            name: row.name,
-            args: row.args ?? {},
-          };
-        });
+      return dedupeEvents(
+        wire
+          .filter(
+            (row): row is WireEvent & { chainId: number; contractAddress: string; blockNumber: string } =>
+              isValidEventRow(row) &&
+              row.chainId === chainId &&
+              row.contractAddress.toLowerCase() === contractAddress.toLowerCase(),
+          )
+          .map((row) => {
+            const identity = {
+              chainId,
+              contractAddress,
+              transactionHash: row.transactionHash as Hex,
+              logIndex: row.logIndex,
+            };
+            return {
+              ...identity,
+              id: eventId(identity),
+              blockNumber: BigInt(row.blockNumber),
+              blockHash: row.blockHash as Hex,
+              name: row.name,
+              args: row.args ?? {},
+            };
+          }),
+      );
     },
 
     async stats(): Promise<IndexerStats | null> {

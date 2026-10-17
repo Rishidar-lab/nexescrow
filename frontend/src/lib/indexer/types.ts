@@ -77,3 +77,21 @@ export function dedupeEvents(events: EscrowEventRecord[]): EscrowEventRecord[] {
   }
   return out;
 }
+
+/**
+ * Deduplicate discovered agreements by id. First occurrence wins; order is
+ * preserved. The log-scan adapter cannot emit duplicate ids (it dedupes events
+ * first), but an HTTP indexer can return the same agreement twice, which would
+ * otherwise surface as duplicate dashboard rows and redundant contract reads.
+ */
+export function dedupeDiscoveries(discoveries: AgreementDiscovery[]): AgreementDiscovery[] {
+  const seen = new Set<string>();
+  const out: AgreementDiscovery[] = [];
+  for (const discovery of discoveries) {
+    const key = discovery.id.toString();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(discovery);
+  }
+  return out;
+}
