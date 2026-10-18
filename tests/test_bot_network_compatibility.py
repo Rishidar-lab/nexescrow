@@ -109,6 +109,33 @@ class TestHarnessGates(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, flattened)
 
+    def test_skip_flags_remove_optional_steps(self) -> None:
+        _, steps = harness.build_plan(
+            self.make_args(skip_range_cap=True, skip_head_stability=True)
+        )
+        names = [name for name, _, _ in steps]
+        self.assertNotIn("eth-getLogs-range-cap", names)
+        self.assertNotIn("head-stability", names)
+        self.assertIn("rpc-capability", names)
+
+    def test_range_cap_rejects_values_above_limit(self) -> None:
+        with self.assertRaisesRegex(ValueError, "2000-block limit"):
+            harness.build_plan(self.make_args(max_range=2001))
+
+    def test_span_validation_errors(self) -> None:
+        for raw in ("", "500,,1000", "abc", "0", "2500"):
+            with self.subTest(raw=raw):
+                with self.assertRaises(ValueError):
+                    harness.parse_span_list(raw)
+
+    def test_parse_span_list_accepts_ordered_values(self) -> None:
+        self.assertEqual(harness.parse_span_list("500, 1000,2000"), [500, 1000, 2000])
+
+    def test_execution_trace_step_is_added_on_968(self) -> None:
+        _, steps = harness.build_plan(self.make_args(include_execution_trace=True))
+        names = [name for name, _, _ in steps]
+        self.assertIn("execution-trace-inventory", names)
+
 
 class TestExecutionTraceAnalysis(unittest.TestCase):
     def test_cancun_opcode_and_precompile_call_are_reported(self) -> None:

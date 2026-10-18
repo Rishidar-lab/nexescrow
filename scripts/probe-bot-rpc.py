@@ -246,6 +246,12 @@ def count_hex_bytes(result):
     return None
 
 
+def chain_id_mismatch(observed, expected) -> bool:
+    if not isinstance(observed, int) or not isinstance(expected, int):
+        return False
+    return observed != expected
+
+
 def probe_network(args) -> dict:
     rpc = Rpc(args.rpc_url)
     report = {
@@ -283,6 +289,12 @@ def probe_network(args) -> dict:
         chain_id == args.expected_chain_id if args.expected_chain_id is not None else None
     )
     time.sleep(PAUSE_BETWEEN_REQUESTS_S)
+
+    if chain_id_mismatch(chain_id, args.expected_chain_id):
+        report["fatal"] = f"chain id mismatch: expected {args.expected_chain_id}, observed {chain_id}; probe aborted before issuing further requests"
+        report["generated_at_end"] = iso_now()
+        report["total_requests_issued"] = rpc.request_count
+        return report
 
     # eth_blockNumber
     block_test = rpc.measure("eth_blockNumber", "eth_blockNumber", [])
@@ -527,7 +539,7 @@ def main() -> int:
         "total_requests": report.get("total_requests_issued"),
     }
     print(json.dumps(summary, indent=2))
-    return 0
+    return 2 if report.get("fatal") else 0
 
 
 if __name__ == "__main__":

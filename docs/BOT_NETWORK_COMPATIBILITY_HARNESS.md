@@ -68,10 +68,14 @@ The bundle includes:
    `scripts/observe-bot-head-stability.py`;
 4. a manifest with SHA-256 hashes for generated evidence files.
 
+Every probe call is retried up to five attempts when the response is an HTTP 429, 502, 503, or 504, or when the request times out or fails at the network layer. Backoff between retries follows a fixed 3/6/12/24-second schedule. Each probe is repeated three times with a one-second pause between repeats, and every recorded observation carries the attempt count and physical request count so retries remain visible in the evidence.
+
 The default maximum range is deliberately 2,000 blocks to match the network
 guidance already received. Larger experimental ranges should be run only when
 there is a specific review reason and should be documented as experiments, not
 supported limits.
+
+Two optional steps can be removed with `--skip-range-cap` and `--skip-head-stability`. Both are plain `store_true` flags guarded by `if not args.skip_range_cap:` and `if not args.skip_head_stability:`, so a skipped step appears neither in the printed plan nor in the generated bundle.
 
 ## Recorded execution-path inventory
 
@@ -92,6 +96,8 @@ precompile addresses `0x01` through `0x0a`.
 If `debug_traceTransaction` is unavailable, the report records that limitation.
 It must not infer support or non-support for opcodes/precompiles from the absence
 of a trace endpoint.
+
+On chain 677, `--include-execution-trace` requires an explicit `--transactions` file (the runner raises a `ValueError` otherwise). On 968 the default is `docs/evidence/bot-968/transactions.json`. The step is named `execution-trace-inventory` and writes `{cfg['name']}-execution-trace.json` (for example `bot-bohr-testnet-execution-trace.json`).
 
 ## Head/reorg observations
 
@@ -145,4 +151,10 @@ The tests verify, offline:
 - the recorded 968 deployment target is used by the default plan;
 - parent-link inconsistencies are detected;
 - execution-trace analysis distinguishes Cancun opcodes and standard precompile
-  call targets without treating them as network guarantees.
+  call targets without treating them as network guarantees;
+- span parsing rejects non-integer, zero, negative, or >2000 values, and requires
+  at least one span;
+- the 2000-block range cap is enforced for both `--max-range` and individual
+  `--spans` values;
+- probe retries follow a fixed 3/6/12/24-second backoff over five attempts, with
+  three repeats per probe.

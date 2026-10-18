@@ -17,12 +17,17 @@ import argparse
 import hashlib
 import json
 import pathlib
+import platform
 import subprocess
 import sys
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+MAX_GET_LOGS_RANGE = 2000
+
+NETWORK_DISPLAY = {968: "BOT Chain Bohr testnet", 677: "BOT Chain mainnet"}
 
 CHAINS = {
     968: {
@@ -101,6 +106,169 @@ def run_step(name: str, command: list[str], dry_run: bool) -> dict:
     }
 
 
+def parse_span_list(raw: str) -> list[int]:
+    tokens = [token.strip() for token in raw.split(",")]
+    if not any(tokens):
+        raise ValueError("--spans must contain at least one value")
+    spans: list[int] = []
+    for token in tokens:
+        if not token:
+            raise ValueError(
+                "--spans must be a comma-separated list of positive integers"
+            )
+        try:
+            value = int(token, 10)
+        except ValueError:
+            raise ValueError(f"--spans value {token!r} is not an integer") from None
+        if value < 1:
+            raise ValueError(f"--spans value {value} must be positive")
+        if value > MAX_GET_LOGS_RANGE:
+            raise ValueError(
+                f"--spans value {value} exceeds the 2000-block limit"
+            )
+        spans.append(value)
+    return spans
+
+
+def git_commit() -> str | None:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.strip() or None
+
+
+def git_dirty() -> bool | None:
+    try:
+        proc = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    return bool(proc.stdout.strip())
+
+
+def make_run_id(started_at: str, chain_id: int) -> str:
+    return started_at.replace("-", "").replace(":", "") + f"-{chain_id}"
+
+
+def build_run_metadata(metadata: dict, started_at: str) -> dict:
+    chain_id = metadata["chain_id"]
+    return {
+        "schemaVersion": 1,
+        "runId": make_run_id(started_at, chain_id),
+        "startedAtUtc": started_at,
+        "finishedAtUtc": None,
+        "gitCommit": git_commit(),
+        "gitDirty": git_dirty(),
+        "chainId": chain_id,
+        "network": NETWORK_DISPLAY.get(chain_id, metadata["network"]),
+        "rpcEndpoint": metadata["rpc_url"],
+        "runtime": "python",
+        "runtimeVersion": platform.python_version(),
+        "toolVersions": {"python": platform.python_version()},
+        "harnessVersion": "1",
+        "requestPolicy": {
+            "maxBlockRange": MAX_GET_LOGS_RANGE,
+            "maxConcurrency": 1,
+            "minimumDelayMs": 1000,
+        },
+    }
+
+
+ARTIFACT_PROJECTIONS = {
+    "rpc-capability": ("tests", "test"),
+    "eth_getLogs-range-cap": ("probes", "probe"),
+    "head-stability": ("samples", "sample"),
+}
+
+
+def project_artifact(
+    step_name: str, artifact_path: pathlib.Path, document: object
+) -> list[dict]:
+    projection = ARTIFACT_PROJECTIONS.get(step_name)
+    if projection is None:
+        return []
+    collection_name, kind = projection
+    if not isinstance(document, dict):
+        return []
+    records = document.get(collection_name)
+    if not isinstance(records, list):
+        return []
+    lines: list[dict] = []
+    for ordinal, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        base = {
+            "source": step_name,
+            "artifact": artifact_path.name,
+            "kind": kind,
+            "ordinal": ordinal,
+        }
+        unit = {key: value for key, value in record.items() if key != "attempts"}
+        attempts = record.get("attempts")
+        if isinstance(attempts, list):
+            unit["attempt_count"] = len(attempts)
+        lines.append({**base, "record": unit})
+        if isinstance(attempts, list):
+            for attempt in attempts:
+                if isinstance(attempt, dict):
+                    lines.append({**base, "attempt": attempt})
+    return lines
+
+
+def write_json(path: pathlib.Path, payload: object) -> None:
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def write_jsonl(path: pathlib.Path, lines: list[dict]) -> None:
+    text = "".join(json.dumps(line, sort_keys=True) + "\n" for line in lines)
+    path.write_text(text, encoding="utf-8")
+
+
+def build_summary(
+    run_metadata: dict, results: list[dict], produced: list[dict], finished_at: str
+) -> dict:
+    steps = [
+        {
+            "name": result["name"],
+            "status": result["status"],
+            "exitCode": result["exit_code"],
+        }
+        for result in results
+    ]
+    passed_count = sum(1 for step in steps if step["status"] == "passed")
+    failed_count = sum(1 for step in steps if step["status"] == "failed")
+    return {
+        "schemaVersion": 1,
+        "runId": run_metadata["runId"],
+        "chainId": run_metadata["chainId"],
+        "network": run_metadata["network"],
+        "startedAtUtc": run_metadata["startedAtUtc"],
+        "finishedAtUtc": finished_at,
+        "steps": steps,
+        "stepCount": len(steps),
+        "passedCount": passed_count,
+        "failedCount": failed_count,
+        "artifacts": produced,
+        "artifactCount": len(produced),
+    }
+
+
 def build_plan(args: argparse.Namespace) -> tuple[dict, list[tuple[str, list[str], pathlib.Path]]]:
     if args.chain_id not in CHAINS:
         raise ValueError(f"unsupported chain id: {args.chain_id}")
@@ -115,6 +283,12 @@ def build_plan(args: argparse.Namespace) -> tuple[dict, list[tuple[str, list[str
         cfg["rpc_url"] = validate_public_rpc_url(args.rpc_url)
     else:
         cfg["rpc_url"] = validate_public_rpc_url(cfg["rpc_url"])
+
+    if args.max_range > MAX_GET_LOGS_RANGE:
+        raise ValueError(
+            f"--max-range {args.max_range} exceeds the 2000-block limit"
+        )
+    parse_span_list(args.spans)
 
     out_dir = pathlib.Path(args.out_dir)
     if not out_dir.is_absolute():
@@ -277,6 +451,14 @@ def main() -> int:
 
     if not args.dry_run:
         out_dir.mkdir(parents=True, exist_ok=True)
+        started_at = iso_now()
+        run_metadata = build_run_metadata(metadata, started_at)
+        write_json(out_dir / "metadata.json", run_metadata)
+
+    documents: dict[str, tuple[pathlib.Path, object]] = {}
+    request_lines: list[dict] = []
+    response_lines: list[dict] = []
+    observation_lines: list[dict] = []
 
     results = []
     produced = []
@@ -291,6 +473,30 @@ def main() -> int:
                     "bytes": output.stat().st_size,
                 }
             )
+            try:
+                document = json.loads(output.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                document = None
+            documents[name] = (output, document)
+
+    if not args.dry_run:
+        for step_name, (artifact_path, document) in documents.items():
+            for line in project_artifact(step_name, artifact_path, document):
+                if "attempt" in line:
+                    response_lines.append(line)
+                else:
+                    request_lines.append(line)
+                    observation_lines.append(line)
+        write_jsonl(out_dir / "requests.jsonl", request_lines)
+        write_jsonl(out_dir / "responses.jsonl", response_lines)
+        write_jsonl(out_dir / "observations.jsonl", observation_lines)
+        finished_at = iso_now()
+        run_metadata["finishedAtUtc"] = finished_at
+        write_json(out_dir / "metadata.json", run_metadata)
+        write_json(
+            out_dir / "summary.json",
+            build_summary(run_metadata, results, produced, finished_at),
+        )
 
     manifest = {
         **metadata,
