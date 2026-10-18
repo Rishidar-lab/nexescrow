@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-18T07:51:58Z",
+  "chain_id": 968,
+  "network": "bot-bohr-testnet",
+  "rpc_url": "https://rpc.bohr.life",
+  "read_only": true,
+  "mainnet_read_opt_in": false,
+  "evidence_boundary": {
+    "observational_only": true,
+    "no_transactions": true,
+    "no_deployment": true,
+    "does_not_establish": [
+      "BOT Chain finality guarantee",
+      "BOT Chain retry/backoff policy",
+      "BOT Chain opcode/precompile guarantee",
+      "security audit",
+      "production readiness",
+      "ecosystem-support approval"
+    ]
+  },
+  "parameters": {
+    "max_range": 100,
+    "max_results": 10000,
+    "range_spans": "50",
+    "head_samples": 1,
+    "head_interval_s": 5.0,
+    "head_depth": 12
+  },
+  "dry_run": false,
+  "steps": [
+    {
+      "name": "rpc-capability",
+      "command": [
+        "/usr/bin/python3",
+        "/home/parzival/nexescrow/scripts/probe-bot-rpc.py",
+        "--name",
+        "bot-bohr-testnet",
+        "--rpc-url",
+        "https://rpc.bohr.life",
+        "--expected-chain-id",
+        "968",
+        "--max-range",
+        "100",
+        "--max-results",
+        "10000",
+        "--out",
+        "/home/parzival/nexescrow/results/20261018T075158-968/bot-bohr-testnet-rpc-capability.json",
+        "--log-address",
+        "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+        "--historical-block",
+        "26178651",
+        "--receipt-tx",
+        "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "stdout_tail": "{\n  \"network\": \"bot-bohr-testnet\",\n  \"observed_chain_id\": 968,\n  \"latest_block\": 27267261,\n  \"methods_tested\": 9,\n  \"get_logs_ranges\": [\n    {\n      \"label\": \"single latest block\",\n      \"span\": 1,\n      \"all_ok\": true,\n      \"median_ms\": 420.7,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"single historical block\",\n      \"span\": 1,\n      \"all_ok\": true,\n      \"median_ms\": 420.4,\n      \"count\": 1,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"10-block range\",\n      \"span\": 11,\n      \"all_ok\": true,\n      \"median_ms\": 430.6,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"100-block range\",\n      \"span\": 101,\n      \"all_ok\": true,\n      \"median_ms\": 413.0,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    },\n    {\n      \"label\": \"1000-block range\",\n      \"span\": 1001,\n      \"all_ok\": true,\n      \"median_ms\": 420.8,\n      \"count\": 0,\n      \"http_503_attempts\": 0,\n      \"error_code\": null\n    }\n  ],\n  \"range_stop_reason\": null,\n  \"total_requests\": 49\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "results/20261018T075158-968/bot-bohr-testnet-rpc-capability.json",
+      "sha256": "42a99023db7f19f351030f6de485ab8f9d607a380da2bc4c0cac273aad20d464",
+      "bytes": 24267
+    }
+  ],
+  "completed_at": "2026-10-18T07:53:04Z"
+}

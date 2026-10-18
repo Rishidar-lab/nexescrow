@@ -1,0 +1,993 @@
+{
+  "name": "bot-bohr-testnet",
+  "rpc_url": "https://rpc.bohr.life",
+  "expected_chain_id": 968,
+  "generated_at": "2026-10-18T07:51:58Z",
+  "read_only": true,
+  "request_parameters": {
+    "repeats": 3,
+    "timeout_s": 25.0,
+    "pause_between_requests_s": 1.0,
+    "retry_backoff_s": [
+      3,
+      6,
+      12,
+      24
+    ],
+    "max_attempts_per_request": 5,
+    "latency_sanity_ms": 10000,
+    "max_range_attempted": 100,
+    "max_results_before_stop": 10000
+  },
+  "tests": [
+    {
+      "id": "eth_chainId",
+      "method": "eth_chainId",
+      "params": [],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          651.4,
+          609.2,
+          509.3
+        ],
+        "min": 509.3,
+        "median": 609.2,
+        "max": 651.4
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": null,
+      "result_excerpt": "\"0x3c8\"",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:51:59 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 651.4
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 609.2
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 509.3
+        }
+      ]
+    },
+    {
+      "id": "eth_blockNumber",
+      "method": "eth_blockNumber",
+      "params": [],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          435.0,
+          424.8,
+          433.0
+        ],
+        "min": 424.8,
+        "median": 433.0,
+        "max": 435.0
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": null,
+      "result_excerpt": "\"0x1a010b7\"",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:05 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 435.0
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 424.8
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 433.0
+        }
+      ]
+    },
+    {
+      "id": "eth_getBlockByNumber(latest,false)",
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x1a010bd",
+        false
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          660.9,
+          414.2,
+          415.5
+        ],
+        "min": 414.2,
+        "median": 415.5,
+        "max": 660.9
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "{\"baseFeePerGas\": \"0x0\", \"blobGasUsed\": \"0x0\", \"difficulty\": \"0x2\", \"excessBlobGas\": \"0x0\", \"extraData\": \"0xd88301050d846765746888676f312e32372e30856c696e75780000008fd2ca61f8b27fb860b6ab05168aa968bcae...(truncated)",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:11 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 660.9
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 414.2
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 415.5
+        }
+      ]
+    },
+    {
+      "id": "eth_getBlockByNumber(0x18f745b,false)",
+      "method": "eth_getBlockByNumber",
+      "params": [
+        "0x18f745b",
+        false
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          423.8,
+          428.0,
+          423.6
+        ],
+        "min": 423.6,
+        "median": 423.8,
+        "max": 428.0
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 2,
+      "result_excerpt": "{\"baseFeePerGas\": \"0x0\", \"blobGasUsed\": \"0x0\", \"difficulty\": \"0x2\", \"excessBlobGas\": \"0x0\", \"extraData\": \"0xd88301050d846765746888676f312e32372e30856c696e75780000008fd2ca61f8b27fb860a3efb5f80e4c028f9c...(truncated)",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:15 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 423.8
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 428.0
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 423.6
+        }
+      ]
+    },
+    {
+      "id": "eth_getCode(0x6448668ae9cbbc41617c2bd5e4f29279320a2700)",
+      "method": "eth_getCode",
+      "params": [
+        "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+        "latest"
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          431.6,
+          433.9,
+          420.0
+        ],
+        "min": 420.0,
+        "median": 431.6,
+        "max": 433.9
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 6309,
+      "result_excerpt": "\"0x6080806040526004361015610012575f80fd5b5f3560e01c90816307311283146114c857508063164e68de146113f557806335659fb8146113d15780633f4ba83a1461136357806342c549c01461129957806346904840146112715780634c05abeb1...(truncated)",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:19 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 431.6
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 433.9
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 420.0
+        }
+      ]
+    },
+    {
+      "id": "eth_call(empty data -> 0x0000000000000000000000000000000000000000)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x0000000000000000000000000000000000000000",
+          "data": "0x"
+        },
+        "latest"
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          423.2,
+          425.6,
+          471.3
+        ],
+        "min": 423.2,
+        "median": 425.6,
+        "max": 471.3
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "\"0x\"",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:24 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 423.2
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 425.6
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 471.3
+        }
+      ]
+    },
+    {
+      "id": "eth_call(totalSupply() -> 0x6448668ae9cbbc41617c2bd5e4f29279320a2700)",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+          "data": "0x18160ddd"
+        },
+        "latest"
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "rpc_error",
+        "rpc_error",
+        "rpc_error"
+      ],
+      "all_ok": false,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          417.5,
+          427.5,
+          429.2
+        ],
+        "min": 417.5,
+        "median": 427.5,
+        "max": 429.2
+      },
+      "http_status": 200,
+      "error_code": 3,
+      "error_message": "execution reverted: 0x",
+      "result_count": null,
+      "result_excerpt": null,
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:28 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "error_code": 3,
+          "latency_ms": 417.5
+        },
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "error_code": 3,
+          "latency_ms": 427.5
+        },
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "error_code": 3,
+          "latency_ms": 429.2
+        }
+      ]
+    },
+    {
+      "id": "eth_estimateGas(0-value transfer)",
+      "method": "eth_estimateGas",
+      "params": [
+        {
+          "from": "0x0000000000000000000000000000000000000001",
+          "to": "0x0000000000000000000000000000000000000001",
+          "value": "0x0"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          417.0,
+          473.7,
+          422.5
+        ],
+        "min": 417.0,
+        "median": 422.5,
+        "max": 473.7
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 24338,
+      "result_excerpt": "\"0x5f12\"",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:32 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 417.0
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 473.7
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 422.5
+        }
+      ]
+    },
+    {
+      "id": "eth_getTransactionReceipt(0x4216d1e1eb...)",
+      "method": "eth_getTransactionReceipt",
+      "params": [
+        "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61"
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          426.8,
+          424.3,
+          451.2
+        ],
+        "min": 424.3,
+        "median": 426.8,
+        "max": 451.2
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": null,
+      "result_excerpt": "{\"blockHash\": \"0x9d6c8b20c8864e939294b9850204b8dc3c139a243a1a80ecd50ca5a6576741c7\", \"blockNumber\": \"0x18f745b\", \"contractAddress\": \"0x6448668ae9cbbc41617c2bd5e4f29279320a2700\", \"cumulativeGasUsed\": \"0...(truncated)",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:36 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 426.8
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 424.3
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 451.2
+        }
+      ]
+    }
+  ],
+  "get_logs_ranges": [
+    {
+      "id": "eth_getLogs:single latest block",
+      "method": "eth_getLogs",
+      "params": [
+        {
+          "fromBlock": "0x1a010bd",
+          "toBlock": "0x1a010bd",
+          "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          422.7,
+          420.7,
+          410.4
+        ],
+        "min": 410.4,
+        "median": 420.7,
+        "max": 422.7
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "[]",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:41 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 422.7
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 420.7
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 410.4
+        }
+      ],
+      "range": {
+        "label": "single latest block",
+        "from_block": 27267261,
+        "to_block": 27267261,
+        "block_span": 1,
+        "address_filter": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+      }
+    },
+    {
+      "id": "eth_getLogs:single historical block",
+      "method": "eth_getLogs",
+      "params": [
+        {
+          "fromBlock": "0x18f745b",
+          "toBlock": "0x18f745b",
+          "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          469.7,
+          420.4,
+          419.0
+        ],
+        "min": 419.0,
+        "median": 420.4,
+        "max": 469.7
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 1,
+      "result_excerpt": "[{\"address\": \"0x6448668ae9cbbc41617c2bd5e4f29279320a2700\", \"topics\": [\"0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0\", \"0x000000000000000000000000000000000000000000000000000000000...(truncated)",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:45 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 469.7
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 420.4
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 419.0
+        }
+      ],
+      "range": {
+        "label": "single historical block",
+        "from_block": 26178651,
+        "to_block": 26178651,
+        "block_span": 1,
+        "address_filter": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+      }
+    },
+    {
+      "id": "eth_getLogs:10-block range",
+      "method": "eth_getLogs",
+      "params": [
+        {
+          "fromBlock": "0x1a010b3",
+          "toBlock": "0x1a010bd",
+          "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          426.1,
+          430.6,
+          469.6
+        ],
+        "min": 426.1,
+        "median": 430.6,
+        "max": 469.6
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "[]",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:49 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 426.1
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 430.6
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 469.6
+        }
+      ],
+      "range": {
+        "label": "10-block range",
+        "from_block": 27267251,
+        "to_block": 27267261,
+        "block_span": 11,
+        "address_filter": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+      }
+    },
+    {
+      "id": "eth_getLogs:100-block range",
+      "method": "eth_getLogs",
+      "params": [
+        {
+          "fromBlock": "0x1a01059",
+          "toBlock": "0x1a010bd",
+          "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          394.6,
+          458.0,
+          413.0
+        ],
+        "min": 394.6,
+        "median": 413.0,
+        "max": 458.0
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "[]",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:54 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 394.6
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 458.0
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 413.0
+        }
+      ],
+      "range": {
+        "label": "100-block range",
+        "from_block": 27267161,
+        "to_block": 27267261,
+        "block_span": 101,
+        "address_filter": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+      }
+    },
+    {
+      "id": "eth_getLogs:1000-block range",
+      "method": "eth_getLogs",
+      "params": [
+        {
+          "fromBlock": "0x1a00cd5",
+          "toBlock": "0x1a010bd",
+          "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+        }
+      ],
+      "repeats": 3,
+      "outcomes": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "all_ok": true,
+      "stable": true,
+      "retries_used": 0,
+      "http_503_attempts": 0,
+      "physical_requests": 3,
+      "latency_ms": {
+        "samples": [
+          420.8,
+          467.1,
+          411.1
+        ],
+        "min": 411.1,
+        "median": 420.8,
+        "max": 467.1
+      },
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "result_count": 0,
+      "result_excerpt": "[]",
+      "response_headers": {
+        "date": "Sun, 18 Oct 2026 07:52:58 GMT",
+        "content-type": "application/json"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 420.8
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 467.1
+        },
+        {
+          "attempt": 1,
+          "outcome": "ok",
+          "http_status": 200,
+          "error_code": null,
+          "latency_ms": 411.1
+        }
+      ],
+      "range": {
+        "label": "1000-block range",
+        "from_block": 27266261,
+        "to_block": 27267261,
+        "block_span": 1001,
+        "address_filter": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700"
+      }
+    }
+  ],
+  "rate_limit_observations": [
+    {
+      "outcome": "ok",
+      "http_status": 200,
+      "latency_ms": 438.9,
+      "headers": {
+        "date": "Sun, 18 Oct 2026 07:53:02 GMT",
+        "content-type": "application/json"
+      }
+    },
+    {
+      "outcome": "ok",
+      "http_status": 200,
+      "latency_ms": 429.7,
+      "headers": {
+        "date": "Sun, 18 Oct 2026 07:53:03 GMT",
+        "content-type": "application/json"
+      }
+    },
+    {
+      "outcome": "ok",
+      "http_status": 200,
+      "latency_ms": 415.1,
+      "headers": {
+        "date": "Sun, 18 Oct 2026 07:53:03 GMT",
+        "content-type": "application/json"
+      }
+    },
+    {
+      "outcome": "ok",
+      "http_status": 200,
+      "latency_ms": 431.7,
+      "headers": {
+        "date": "Sun, 18 Oct 2026 07:53:04 GMT",
+        "content-type": "application/json"
+      }
+    },
+    {
+      "outcome": "ok",
+      "http_status": 200,
+      "latency_ms": 429.0,
+      "headers": {
+        "date": "Sun, 18 Oct 2026 07:53:04 GMT",
+        "content-type": "application/json"
+      }
+    }
+  ],
+  "gateway_notes": "HTTP 503 (nginx 'Service Temporarily Unavailable') is retried with backoff; every physical attempt is recorded.",
+  "observed_chain_id": 968,
+  "chain_id_matches_expected": true,
+  "latest_block": 27267261,
+  "historical_block_probed": 26178651,
+  "receipt_target": "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61",
+  "receipt_target_source": "operator-provided",
+  "log_filter": {
+    "address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
+    "source": "operator-provided",
+    "note": "address filter pinned from prior explorer/RPC evidence"
+  },
+  "total_requests_issued": 49,
+  "generated_at_end": "2026-10-18T07:53:04Z"
+}

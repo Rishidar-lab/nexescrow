@@ -1,0 +1,26 @@
+{
+  "artifactCount": 1,
+  "artifacts": [
+    {
+      "bytes": 24267,
+      "path": "results/20261018T075158-968/bot-bohr-testnet-rpc-capability.json",
+      "sha256": "42a99023db7f19f351030f6de485ab8f9d607a380da2bc4c0cac273aad20d464"
+    }
+  ],
+  "chainId": 968,
+  "failedCount": 0,
+  "finishedAtUtc": "2026-10-18T07:53:04Z",
+  "network": "BOT Chain Bohr testnet",
+  "passedCount": 1,
+  "runId": "20261018T075158Z-968",
+  "schemaVersion": 1,
+  "startedAtUtc": "2026-10-18T07:51:58Z",
+  "stepCount": 1,
+  "steps": [
+    {
+      "exitCode": 0,
+      "name": "rpc-capability",
+      "status": "passed"
+    }
+  ]
+}
