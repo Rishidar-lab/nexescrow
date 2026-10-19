@@ -1,0 +1,22 @@
+{
+  "chainId": 968,
+  "finishedAtUtc": "2026-10-19T14:03:49Z",
+  "gitCommit": "ba7223ae23032d64889b521c9ff68cc7e1d25f90",
+  "gitDirty": true,
+  "harnessVersion": "1",
+  "network": "BOT Chain Bohr testnet",
+  "requestPolicy": {
+    "maxBlockRange": 2000,
+    "maxConcurrency": 1,
+    "minimumDelayMs": 1000
+  },
+  "rpcEndpoint": "https://rpc.bohr.life",
+  "runId": "20261019T140120Z-968",
+  "runtime": "python",
+  "runtimeVersion": "3.12.3",
+  "schemaVersion": 1,
+  "startedAtUtc": "2026-10-19T14:01:20Z",
+  "toolVersions": {
+    "python": "3.12.3"
+  }
+}

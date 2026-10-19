@@ -3,8 +3,9 @@
 Read-only BOT Chain network-compatibility harness for NexEscrow.
 
 This orchestrates the repository's existing RPC capability/range probes plus a
-short head-stability observation. It never sends transactions. BOT mainnet
-(chain 677) is opt-in for reads only and remains disabled for writes/deployment.
+short head-stability observation. It never sends transactions. Only BOT Chain
+Bohr testnet (chain 968) is supported; chain 677 is rejected outright and no
+write or deployment path exists.
 
 The resulting bundle is observational evidence only. It must not be interpreted
 as a BOT Chain finality guarantee, retry policy, opcode/precompile guarantee,
@@ -27,7 +28,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 MAX_GET_LOGS_RANGE = 2000
 
-NETWORK_DISPLAY = {968: "BOT Chain Bohr testnet", 677: "BOT Chain mainnet"}
+NETWORK_DISPLAY = {968: "BOT Chain Bohr testnet"}
 
 CHAINS = {
     968: {
@@ -36,13 +37,6 @@ CHAINS = {
         "log_address": "0x6448668ae9cbbc41617c2bd5e4f29279320a2700",
         "historical_block": 26178651,
         "receipt_tx": "0x4216d1e1eb33e296e3a3040baa723b507ce2da449d60e6ffe9456cecacf6da61",
-    },
-    677: {
-        "name": "bot-mainnet",
-        "rpc_url": "https://rpc.botchain.ai",
-        "log_address": None,
-        "historical_block": None,
-        "receipt_tx": None,
     },
 }
 
@@ -272,12 +266,6 @@ def build_summary(
 def build_plan(args: argparse.Namespace) -> tuple[dict, list[tuple[str, list[str], pathlib.Path]]]:
     if args.chain_id not in CHAINS:
         raise ValueError(f"unsupported chain id: {args.chain_id}")
-    if args.chain_id == 677 and not args.allow_mainnet_read:
-        raise ValueError(
-            "chain 677 is gated: pass --allow-mainnet-read for read-only observation; "
-            "this flag never enables writes or deployment"
-        )
-
     cfg = dict(CHAINS[args.chain_id])
     if args.rpc_url:
         cfg["rpc_url"] = validate_public_rpc_url(args.rpc_url)
@@ -341,11 +329,6 @@ def build_plan(args: argparse.Namespace) -> tuple[dict, list[tuple[str, list[str
         steps.append(("eth-getLogs-range-cap", range_cmd, range_cap))
 
     if args.include_execution_trace:
-        if args.chain_id != 968 and not args.transactions:
-            raise ValueError(
-                "--include-execution-trace on chain 677 requires an explicit "
-                "--transactions file from a controlled 677 exercise"
-            )
         transactions = args.transactions or "docs/evidence/bot-968/transactions.json"
         trace_out = out_dir / f"{cfg['name']}-execution-trace.json"
         trace_cmd = [
@@ -390,7 +373,6 @@ def build_plan(args: argparse.Namespace) -> tuple[dict, list[tuple[str, list[str
         "network": cfg["name"],
         "rpc_url": cfg["rpc_url"],
         "read_only": True,
-        "mainnet_read_opt_in": bool(args.allow_mainnet_read),
         "evidence_boundary": EVIDENCE_BOUNDARY,
         "parameters": {
             "max_range": args.max_range,
@@ -408,7 +390,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chain-id", type=int, choices=sorted(CHAINS), default=968)
     parser.add_argument("--rpc-url", default=None)
-    parser.add_argument("--allow-mainnet-read", action="store_true")
     parser.add_argument(
         "--out-dir",
         default="docs/evidence/bot-network-compatibility",

@@ -1,0 +1,56 @@
+{
+  "artifactCount": 4,
+  "artifacts": [
+    {
+      "bytes": 25941,
+      "path": "results/20261019-cisco-968/bot-bohr-testnet-rpc-capability.json",
+      "sha256": "423430f963bf3fb8b3959913c0f194affa9bb731d77f7fe025b937b984732cae"
+    },
+    {
+      "bytes": 1182,
+      "path": "results/20261019-cisco-968/bot-bohr-testnet-range-cap.json",
+      "sha256": "2da43e2a7c155f0e24d55260e924d0c75f5e53de15d7ce9f94c46ceb5a282deb"
+    },
+    {
+      "bytes": 6051,
+      "path": "results/20261019-cisco-968/bot-bohr-testnet-execution-trace.json",
+      "sha256": "53af7187fa4c2c161684a74ac86b84d6ae48794195ec15b604598f1c8497b03c"
+    },
+    {
+      "bytes": 26919,
+      "path": "results/20261019-cisco-968/bot-bohr-testnet-head-stability.json",
+      "sha256": "699c3306b78d21d198f5a0ff3d7bc4917e621b85f7b73abd7af1410dd68b3e2f"
+    }
+  ],
+  "chainId": 968,
+  "failedCount": 0,
+  "finishedAtUtc": "2026-10-19T14:03:49Z",
+  "network": "BOT Chain Bohr testnet",
+  "passedCount": 4,
+  "runId": "20261019T140120Z-968",
+  "schemaVersion": 1,
+  "startedAtUtc": "2026-10-19T14:01:20Z",
+  "stepCount": 4,
+  "steps": [
+    {
+      "exitCode": 0,
+      "name": "rpc-capability",
+      "status": "passed"
+    },
+    {
+      "exitCode": 0,
+      "name": "eth-getLogs-range-cap",
+      "status": "passed"
+    },
+    {
+      "exitCode": 0,
+      "name": "execution-trace-inventory",
+      "status": "passed"
+    },
+    {
+      "exitCode": 0,
+      "name": "head-stability",
+      "status": "passed"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "bot-bohr-testnet",
+  "rpc_url": "https://rpc.bohr.life",
+  "generated_at": "2026-10-19T14:02:32Z",
+  "filter": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "note": "empty-result filter isolates range-cap from payload size"
+  },
+  "probes": [
+    {
+      "requested_span": 500,
+      "from_block": 27411592,
+      "to_block": 27412091,
+      "outcome": "ok",
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "latency_ms": 417.0,
+      "result_count": 0,
+      "result": []
+    },
+    {
+      "requested_span": 1000,
+      "from_block": 27411092,
+      "to_block": 27412091,
+      "outcome": "ok",
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "latency_ms": 445.9,
+      "result_count": 0,
+      "result": []
+    },
+    {
+      "requested_span": 2000,
+      "from_block": 27410092,
+      "to_block": 27412091,
+      "outcome": "ok",
+      "http_status": 200,
+      "error_code": null,
+      "error_message": null,
+      "latency_ms": 448.8,
+      "result_count": 0,
+      "result": []
+    }
+  ],
+  "latest_block": 27412091,
+  "generated_at_end": "2026-10-19T14:02:42Z"
+}

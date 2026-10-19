@@ -20,7 +20,7 @@ BOT Chain remains the authority for:
 
 - recommended retry/backoff policy;
 - protocol/operator finality or reorganisation guarantees;
-- recommended indexing safety depth for 968 and 677;
+- recommended indexing safety depth for 968;
 - authoritative Cancun opcode/precompile support or limitations.
 
 A successful probe is **not** a security audit, production-readiness approval,
@@ -31,9 +31,7 @@ ecosystem-support decision, or finality guarantee.
 The orchestrator and probes are read-only. They do not call transaction-send
 methods and do not accept private keys or mnemonics.
 
-Chain 968 is the default. Chain 677 is rejected unless the operator explicitly
-passes `--allow-mainnet-read`. That flag permits RPC observation only; it does
-not enable a deployment, transaction, customer funds, or any other write.
+Chain 968 is the default. All other chain ids are rejected outright.
 
 RPC URLs containing credentials, query parameters, or fragments are rejected
 because the evidence bundle records the URL.
@@ -97,7 +95,7 @@ If `debug_traceTransaction` is unavailable, the report records that limitation.
 It must not infer support or non-support for opcodes/precompiles from the absence
 of a trace endpoint.
 
-On chain 677, `--include-execution-trace` requires an explicit `--transactions` file (the runner raises a `ValueError` otherwise). On 968 the default is `docs/evidence/bot-968/transactions.json`. The step is named `execution-trace-inventory` and writes `{cfg['name']}-execution-trace.json` (for example `bot-bohr-testnet-execution-trace.json`).
+On 968 the default is `docs/evidence/bot-968/transactions.json`. The step is named `execution-trace-inventory` and writes `{cfg['name']}-execution-trace.json` (for example `bot-bohr-testnet-execution-trace.json`).
 
 ## Head/reorg observations
 
@@ -110,30 +108,9 @@ No observed replacement during a finite sample **does not prove finality**. This
 tool provides empirical observations for Cisco/BOT engineering to compare with
 their authoritative network policy.
 
-## Mainnet 677
+## Other chains
 
-The harness fails closed for chain 677:
-
-```bash
-python3 scripts/run-bot-network-compatibility.py --chain-id 677
-```
-
-To perform read-only RPC observation, the operator must explicitly opt in:
-
-```bash
-python3 scripts/run-bot-network-compatibility.py \
-  --chain-id 677 \
-  --allow-mainnet-read
-```
-
-This does not alter NexEscrow's deployment gate. A controlled 677 write/deploy
-still requires the separately agreed artifact/asset identity, roles and wallet
-control, funding, maximum exposure, stop conditions, and no-customer-funds
-boundary.
-
-Execution tracing on 677 additionally requires an explicit transaction evidence
-file from a separately approved controlled exercise. The harness will not reuse
-Bohr lifecycle transaction hashes as if they were 677 evidence.
+Chain ids other than 968 are rejected outright by the runner.
 
 ## Offline regression tests
 
@@ -145,9 +122,7 @@ dependency to CI.
 The tests verify, offline:
 
 - credential-bearing RPC URLs are rejected;
-- 677 fails closed without explicit read opt-in;
-- read opt-in never constructs deployment, broadcast, key, or raw-transaction
-  commands;
+- chain ids other than 968 are rejected outright;
 - the recorded 968 deployment target is used by the default plan;
 - parent-link inconsistencies are detected;
 - execution-trace analysis distinguishes Cancun opcodes and standard precompile

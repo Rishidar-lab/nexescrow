@@ -56,7 +56,6 @@ class TestHarnessGates(unittest.TestCase):
         values = {
             "chain_id": 968,
             "rpc_url": None,
-            "allow_mainnet_read": False,
             "out_dir": "docs/evidence/bot-network-compatibility",
             "max_range": 2000,
             "max_results": 10000,
@@ -77,7 +76,6 @@ class TestHarnessGates(unittest.TestCase):
         metadata, steps = harness.build_plan(self.make_args())
         self.assertEqual(metadata["chain_id"], 968)
         self.assertTrue(metadata["read_only"])
-        self.assertFalse(metadata["mainnet_read_opt_in"])
         commands = [item for _, command, _ in steps for item in command]
         self.assertIn("0x6448668ae9cbbc41617c2bd5e4f29279320a2700", commands)
         self.assertIn("26178651", commands)
@@ -90,24 +88,9 @@ class TestHarnessGates(unittest.TestCase):
             ["rpc-capability", "eth-getLogs-range-cap", "head-stability"],
         )
 
-    def test_677_is_blocked_without_explicit_read_opt_in(self) -> None:
+    def test_only_968_is_accepted(self) -> None:
         with self.assertRaises(ValueError):
             harness.build_plan(self.make_args(chain_id=677))
-
-    def test_677_read_opt_in_does_not_add_write_or_deploy_commands(self) -> None:
-        metadata, steps = harness.build_plan(
-            self.make_args(chain_id=677, allow_mainnet_read=True)
-        )
-        self.assertTrue(metadata["mainnet_read_opt_in"])
-        flattened = " ".join(" ".join(command) for _, command, _ in steps).lower()
-        for forbidden in (
-            "sendrawtransaction",
-            "deploy",
-            "broadcast",
-            "private-key",
-            "mnemonic",
-        ):
-            self.assertNotIn(forbidden, flattened)
 
     def test_skip_flags_remove_optional_steps(self) -> None:
         _, steps = harness.build_plan(

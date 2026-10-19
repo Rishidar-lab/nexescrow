@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-19T14:02:42Z",
+  "rpc_url": "https://rpc.bohr.life",
+  "expected_chain_id": 968,
+  "read_only": true,
+  "source_transactions": "docs/evidence/bot-968/transactions.json",
+  "evidence_boundary": "Only successfully returned execution traces are inventoried. Observed execution does not establish BOT-wide opcode/precompile guarantees.",
+  "transactions": [
+    {
+      "step": "createAgreement(A)",
+      "transactionHash": "0xf9f4b64cfd8c7e4f0270889800c15efb9ee6fa66e2622fff495ddb4053d78608",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 441.5,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "fund(A)",
+      "transactionHash": "0xe52792a7054cbfc6b3f74e982e340865109f7417054427e42ca7ba4bf7760a1d",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 473.2,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "approveMilestone(A,0)",
+      "transactionHash": "0x42bcb8608046d459afcdafc6e2909e7e478d3d0db1c07f97781fbfac43ef746e",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 467.4,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "approveMilestone(A,1)",
+      "transactionHash": "0xba6e78551f8d0a27529b87f62de6b440f9d442f940f519d92ea110fc137c39b1",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 462.2,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "createAgreement(B)",
+      "transactionHash": "0x1b49e4e23cd81cc8e970468a9934a46fdb67072f89d834a6c9935f0e4c36d560",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 431.5,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "fund(B)",
+      "transactionHash": "0xb8115ec9c424788564b2259ccfe91c0c1a5d92db9911fda86c49d681ba2774fb",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 413.9,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "raiseDispute(B,seller)",
+      "transactionHash": "0x37275e2a1fa60c2021159b3d7294e961024c2236e080eb889bcd82e1334009bd",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 425.1,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    },
+    {
+      "step": "resolveDispute(B,6000)",
+      "transactionHash": "0x3a53ede3d28fc1a3700d3a7ee2a87df0c465acf832a542dbe5e325bdf3aa2221",
+      "trace_outcome": "rpc_error",
+      "trace_error": {
+        "code": -32601,
+        "message": "the method debug_traceTransaction does not exist/is not available"
+      },
+      "attempts": [
+        {
+          "attempt": 1,
+          "outcome": "rpc_error",
+          "http_status": 200,
+          "latency_ms": 420.4,
+          "error": {
+            "code": -32601,
+            "message": "the method debug_traceTransaction does not exist/is not available"
+          }
+        }
+      ]
+    }
+  ],
+  "observed_chain_id": 968,
+  "chain_id_check": {
+    "outcome": "ok",
+    "http_status": 200,
+    "result": "0x3c8",
+    "error": null,
+    "attempts": [
+      {
+        "attempt": 1,
+        "outcome": "ok",
+        "http_status": 200,
+        "latency_ms": 431.9,
+        "error": null
+      }
+    ]
+  },
+  "summary": {
+    "transactions_supplied": 8,
+    "transactions_traced_with_structLogs": 0,
+    "trace_capability_observed": "not demonstrated by this run"
+  },
+  "completed_at": "2026-10-19T14:02:46Z"
+}
