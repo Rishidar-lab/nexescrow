@@ -15,9 +15,9 @@ import vector from "../demo1/intent-vectors.json";
 const policy: ResolutionPolicy = {
   primaryResolver: vector.resolutionPolicy.primaryResolver as Address,
   appellateResolver: vector.resolutionPolicy.appellateResolver as Address,
-  evidenceWindow: BigInt(vector.resolutionPolicy.evidenceWindow),
-  rulingWindow: BigInt(vector.resolutionPolicy.rulingWindow),
-  appealWindow: BigInt(vector.resolutionPolicy.appealWindow),
+  evidenceWindow: Number(vector.resolutionPolicy.evidenceWindow),
+  rulingWindow: Number(vector.resolutionPolicy.rulingWindow),
+  appealWindow: Number(vector.resolutionPolicy.appealWindow),
   timeoutBuyerBps: vector.resolutionPolicy.timeoutBuyerBps,
   policyHash: vector.resolutionPolicy.policyHash as Hex,
 };
