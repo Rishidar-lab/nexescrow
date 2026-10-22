@@ -41,9 +41,9 @@ export type AgreementIntent = {
 export type ResolutionPolicy = {
   primaryResolver: Address;
   appellateResolver: Address;
-  evidenceWindow: bigint;
-  rulingWindow: bigint;
-  appealWindow: bigint;
+  evidenceWindow: number;
+  rulingWindow: number;
+  appealWindow: number;
   timeoutBuyerBps: number;
   policyHash: Hex;
 };
