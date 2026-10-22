@@ -1,4 +1,4 @@
-# VERIFICATION_LADGER.md — what is actually verified about NexEscrow, and at which layer
+# VERIFICATION_LEDGER.md — what is actually verified about NexEscrow, and at which layer
 
 **Status:** documentation only. No contract, script, frontend or CI change.
 **Branch:** `docs/verification-ladder-20261022` (base: `origin/master` @ `7183779`)
