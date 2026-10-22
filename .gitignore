@@ -1,0 +1,21 @@
+# Secrets — never commit (deploy keys, RPC credentials)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# Build / dependency artifacts
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
