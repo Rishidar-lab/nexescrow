@@ -13,6 +13,19 @@
 
 ---
 
+## Status
+
+**ACTIVE — testnet-only, unaudited.** Every claim below is tiered; nothing here is
+production-ready and no mainnet deployment is recommended.
+
+| Tier | What it covers |
+|---|---|
+| **IMPLEMENTED** | `contracts/src/NexusEscrow.sol` (Demo 0: milestone escrow, disputes, pause, two-step ownership, fee bounds) and the Next.js frontend on `master`. |
+| **LOCAL-TESTED** | 57 Foundry tests incl. reentrancy PoC and fuzz invariants; CI (Contracts / Frontend / Scripts) green on `master`. |
+| **NETWORK-OBSERVED** | BOT Chain **Bohr testnet (968)** deployment and lifecycle run on the unmerged draft branch `feat/botchain-integration` (PR #1); raw packet on `evidence/cisco-bohr-968-20261019`. Observation only — it does not establish BOT-network behaviour beyond what was logged. **BOT mainnet (677) is disabled** in that branch's frontend guard. |
+| **AWAITING BOT GUIDANCE** | Network-owner questions that application evidence cannot answer: RPC/log-query retry guidance, finality/indexing policy, Cancun EVM support. Tracked in [`docs/REVIEW_REQUEST.md`](docs/REVIEW_REQUEST.md); the evidence/assumption boundary is documented in [`docs/VERIFICATION_LEDGER.md`](docs/VERIFICATION_LEDGER.md). |
+| **PLANNED / IN PROGRESS** | Demo 1 hardening (issue #3): `NexEscrowCore`, EIP-712 bilateral intents, EIP-1271, finite dispute deadlines, resolver modules, migration, agent adapters — open PR stack #4 → #10 on `whitepaper/demo-1-hardening`, unmerged and unreviewed. |
+
 ## Overview
 
 Two parties agree on a milestone-based deliverable. The buyer locks funds (native NEX
