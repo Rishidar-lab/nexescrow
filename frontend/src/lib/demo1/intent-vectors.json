@@ -1,0 +1,30 @@
+{
+  "description": "Deterministic Demo 1 interoperability vector. Code/test evidence only; not deployment evidence.",
+  "chainId": 968,
+  "verifyingContract": "0x1111111111111111111111111111111111111111",
+  "buyer": "0x2222222222222222222222222222222222222222",
+  "seller": "0x3333333333333333333333333333333333333333",
+  "settlementAsset": "0x0000000000000000000000000000000000000000",
+  "totalAmount": "3000000000000000000",
+  "milestoneAmounts": ["1000000000000000000", "2000000000000000000"],
+  "termsHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "resolutionPolicy": {
+    "primaryResolver": "0x4444444444444444444444444444444444444444",
+    "appellateResolver": "0x5555555555555555555555555555555555555555",
+    "evidenceWindow": "3600",
+    "rulingWindow": "7200",
+    "appealWindow": "1800",
+    "timeoutBuyerBps": 4000,
+    "policyHash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "fundingDeadline": "1800000000",
+  "executionDeadline": "1800100000",
+  "nonce": "42",
+  "expected": {
+    "agreementIntentTypehash": "0xfe390758628ab13972001fa41b34965f714e78e1ecbb1431320ce36bee75138f",
+    "milestonesHash": "0x7fff640583561805cb1d4cec598e9ac6a95d2f28e1375b669d24543af54bffc9",
+    "resolutionPolicyHash": "0x59d76a14039d4ce428d5c1a78306e83f0daf3f98208ac9cf9fc9a36746d41037",
+    "domainSeparator": "0xa17e128ef9fc6a74ca4aa975cbfe70f4d36788c16e67c27f946008fab60613fe",
+    "intentDigest": "0xdc542fd1bf646bd77182b7d22f26386601bd7aca7db4ac6fc5761aaf2aff9e4c"
+  }
+}
