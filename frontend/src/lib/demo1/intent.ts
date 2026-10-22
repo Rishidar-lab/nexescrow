@@ -7,6 +7,9 @@ import {
   type TypedDataDomain,
 } from "viem";
 
+export const AGREEMENT_INTENT_TYPE_STRING =
+  "AgreementIntent(address buyer,address seller,address settlementAsset,uint256 totalAmount,bytes32 milestonesHash,bytes32 termsHash,bytes32 resolutionPolicyHash,uint64 fundingDeadline,uint64 executionDeadline,uint256 nonce)";
+
 export const agreementIntentTypes = {
   AgreementIntent: [
     { name: "buyer", type: "address" },
@@ -55,9 +58,7 @@ export function demo1Domain(chainId: number, verifyingContract: Address): TypedD
 }
 
 export function hashMilestones(amounts: readonly bigint[]): Hex {
-  return keccak256(
-    encodeAbiParameters([{ type: "uint128[]" }], [amounts]),
-  );
+  return keccak256(encodeAbiParameters([{ type: "uint128[]" }], [amounts]));
 }
 
 export function hashResolutionPolicy(policy: ResolutionPolicy): Hex {
