@@ -74,7 +74,7 @@ contract NexusEscrowDeployPolicyTest is Test {
     bytes internal constant MAINNET_BLOCKED =
         "MAINNET DEPLOYMENT BLOCKED: set ALLOW_MAINNET_DEPLOYMENT=true only after independent security review";
     bytes internal constant BOT_WRONG_CHAIN =
-        "DeployNexusEscrowBOT: chain id must be 968 (BOT Chain Bohr testnet); aborting";
+        "DeployPolicy: chain id must be 968 (BOT Chain Bohr testnet); aborting";
 
     // ---------------------------------------------------------------------
     // DeployPolicy.requireMainnetOptIn — the mainnet gate

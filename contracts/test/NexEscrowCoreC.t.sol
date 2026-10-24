@@ -387,6 +387,41 @@ contract NexEscrowCoreCTest is Test {
         assertEq(core.pendingWithdrawals(address(q), NATIVE), 0);
     }
 
+    /// @notice L2: a quorum signature set authorising one agreement cannot be
+    ///         replayed on another. Each signature is bound to
+    ///         (agreementId, milestoneIndex, buyerBps, isFinal) under the
+    ///         resolver's own EIP-712 domain, so a set minted for a different
+    ///         agreementId recovers foreign (non-member) addresses and is
+    ///         rejected — while the correctly-bound set on the same agreement
+    ///         is accepted (non-vacuity).
+    function test_Quorum_CrossAgreementReplay_Rejected() public {
+        (uint256[] memory pks, address[] memory addrs) = _members();
+        QuorumResolver q = new QuorumResolver(address(core), addrs, 2);
+        uint256 id = _funded(_policy(address(q), address(0), 0));
+        _disputeToRulingWindow(id);
+
+        // Signatures bound to a DIFFERENT agreement (id + 1), same milestone/bps.
+        bytes32 foreignDigest = q.hashRuling(id + 1, 0, 2500, false);
+        bytes[] memory replaySigs = _sortedSigs(_two(pks[0], pks[1]), foreignDigest);
+
+        // Replayed onto `id`: the resolver recomputes the digest for `id`,
+        // recovers addresses that are not members, and reverts. (Whether the
+        // sort guard or the membership guard fires first depends on the
+        // recovered ordering; both are rejections of the replay.)
+        vm.expectRevert();
+        q.submitRuling(id, 0, 2500, replaySigs);
+
+        // The reverted call left no state change, so the correctly-bound set
+        // still finalizes the same milestone — proving the rejection above is
+        // the agreement binding, not a malformed-signature artefact.
+        bytes32 digest = q.hashRuling(id, 0, 2500, false);
+        bytes[] memory sigs = _sortedSigs(_two(pks[0], pks[1]), digest);
+        q.submitRuling(id, 0, 2500, sigs);
+        assertEq(core.pendingWithdrawals(buyer, NATIVE), 0.25 ether);
+        assertEq(core.pendingWithdrawals(seller, NATIVE), 0.75 ether);
+        assertEq(core.pendingWithdrawals(address(q), NATIVE), 0);
+    }
+
     function test_Quorum_RevertsBelowThreshold() public {
         (uint256[] memory pks, address[] memory addrs) = _members();
         QuorumResolver q = new QuorumResolver(address(core), addrs, 2);

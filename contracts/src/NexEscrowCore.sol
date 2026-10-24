@@ -721,6 +721,15 @@ contract NexEscrowCore is EIP712, ReentrancyGuard {
         }
     }
 
+    /// @dev Validates the resolution policy at funding time. NOTE on buyer
+    ///      protection: `timeoutBuyerBps` is only bounded to the full
+    ///      `[0, BPS_DENOMINATOR]` range — there is deliberately NO enforced
+    ///      minimum buyer refund on a timed-out milestone (whitepaper §4.2
+    ///      declines to hard-code one). The split is whatever both parties
+    ///      signed, so buyer protection rests entirely on the buyer reviewing
+    ///      `timeoutBuyerBps` before signing; integrators SHOULD surface it
+    ///      prominently at signing time. This is a disclosed design choice, not
+    ///      an oversight (finding L1).
     function _validatePolicy(ResolutionPolicy calldata p, address buyer, address seller)
         internal
         pure

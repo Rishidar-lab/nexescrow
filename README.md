@@ -16,6 +16,29 @@ been performed. Mainnet deployment is documented but opt-in and blocked by defau
 
 ---
 
+## Repository layers: Demo 0 (deployed) and Demo 1 (hardening, in review)
+
+This repository contains two settlement layers. **The Overview, features, test counts,
+coverage, and Bohr evidence below describe Demo 0 unless stated otherwise.**
+
+- **Demo 0 — `contracts/src/NexusEscrow.sol` (legacy baseline).** Single-arbiter
+  milestone escrow. Deployed and lifecycle-validated on BOT Bohr testnet 968 (address
+  under [Networks](#networks)); 130 Foundry tests. This is the only layer with on-chain
+  deployment evidence.
+- **Demo 1 — `contracts/src/NexEscrowCore.sol` + `QuorumResolver` + agent adapters
+  (hardening, not yet deployed).** Adds bilateral EIP-712 signed intents (EIP-1271
+  aware), recoverable disputes with finite evidence/ruling/appeal deadlines and a
+  committed timeout disposition, an `IResolver` abstraction with an M-of-N quorum
+  resolver, bilateral atomic migration (no owner principal sweep), x402/AP2/ERC-8004
+  metadata adapters, and a production ingestion engine. Specified in
+  [`docs/WHITEPAPER_DEMO_1.md`](docs/WHITEPAPER_DEMO_1.md); tracked in issue #3.
+
+  **Demo 1 status: IMPLEMENTED + LOCAL/CI-TESTED only** (225 total Foundry tests incl.
+  a handler-driven conservation-invariant suite; 60 frontend tests). It is **NOT
+  deployed, NOT independently audited, and NOT production ready.** Per issue #3's
+  evidence boundary, no Demo 1 item is "validated" until a fresh deployment and an
+  independent review exist — Demo 0's Bohr evidence does **not** transfer to Demo 1.
+
 ## Overview
 
 Two parties agree on a milestone-based deliverable. The buyer locks funds (the chain's
@@ -31,9 +54,12 @@ assumptions. A single frontend can target Nexus or BOT Chain, testnets by defaul
 
 - **Milestone-based release.** Milestones release strictly in order as the buyer
   approves them — not one all-or-nothing payout.
-- **Arbitrated disputes, not unilateral timeouts.** Either party can dispute the
-  current milestone; the arbiter splits it by basis points. No timeout-release by
+- **Arbitrated disputes, not unilateral timeouts** *(Demo 0)*. Either party can dispute
+  the current milestone; the arbiter splits it by basis points. No timeout-release by
   design (removes timeout-griefing; a silent arbiter is a disclosed liveness risk).
+  *(Demo 1 instead adds a deterministic, pre-committed timeout disposition finalizable
+  by anyone, so a silent arbiter cannot permanently freeze a milestone — see the
+  whitepaper.)*
 - **Native asset or ERC-20**, via `SafeERC20`. **Fee-on-transfer tokens are rejected at
   funding time** rather than silently under-collateralizing the agreement.
 - **Protocol fee**, capped at 10%, snapshotted per agreement, charged only on the
@@ -52,7 +78,9 @@ assumptions. A single frontend can target Nexus or BOT Chain, testnets by defaul
 - **Tests:** 130 Foundry tests across 8 suites (lifecycle, disputes, admin, authorization
   matrix, deploy guards, token-edge cases, fuzz, and a handler-driven stateful invariant
   suite asserting exact solvency for native and ERC-20). 98.6% line / 97.4% branch
-  coverage of the contract.
+  coverage of `NexusEscrow` (Demo 0). Demo 1 (`NexEscrowCore` + resolvers + adapters)
+  adds 95 further Foundry tests — 225 total — including its own handler-driven
+  conservation-invariant suite; its evidence tier is tracked in issue #3.
 - **Static analysis:** Slither 0.11.5 reports no high/medium findings; informational
   results are documented, not suppressed.
 - **Agreement discovery:** bounded, chunked, deduped direct-RPC log scan by default,
