@@ -17,7 +17,8 @@ and is not production ready. Do not use it to custody real funds.**
 
 | Component | Files |
 |---|---|
-| Escrow contract | `contracts/src/NexusEscrow.sol` |
+| Escrow contract (Demo 0) | `contracts/src/NexusEscrow.sol` |
+| Settlement core + resolvers (Demo 1) | `contracts/src/NexEscrowCore.sol`, `contracts/src/QuorumResolver.sol`, `contracts/src/IResolver.sol`, `contracts/src/INexEscrowMigrationReceiver.sol`, `contracts/src/adapters/` |
 | Deployment scripts | `contracts/script/` |
 | Contracts tests/mocks | `contracts/test/` |
 | Frontend | `frontend/src/` |
@@ -29,6 +30,16 @@ service on public RPC endpoints; issues requiring a compromised owner key (docum
 as a trust assumption, not a vulnerability).
 
 ## Security guarantees (as designed)
+
+The guarantees in this section describe **Demo 0** (`NexusEscrow`). **Demo 1**
+(`NexEscrowCore`) is a separate, not-yet-deployed layer: its settlement core has **no
+owner, fee recipient, pause, or admin at all** (so the owner-related guarantees below
+hold trivially — there is no privileged account), signatures are bound per
+(chain, contract, agreement, milestone) EIP-712 domains, and conservation across
+release/dispute/timeout/appeal/migration is proven by a handler-driven stateful
+invariant suite. Demo 1 is **implemented + local/CI-tested only — not deployed, not
+independently audited, not production ready** (see issue #3; Demo 0's Bohr evidence
+does not transfer to Demo 1).
 
 - Escrow never pays out more than was deposited per agreement and token
   (invariant-tested).

@@ -22,9 +22,11 @@ pragma solidity 0.8.26;
 ///      no test, because it trains reviewers to ignore red.
 ///
 ///      So the decision logic lives here — `pure`, parameterised, no env — and
-///      the scripts read the environment and delegate. The revert strings are
-///      byte-identical to the originals so the runbook and
-///      `docs/evidence/mainnet-guard-677.log` remain accurate.
+///      the scripts read the environment and delegate. The mainnet-gate revert
+///      string is kept byte-identical to the original so the runbook and
+///      `docs/evidence/mainnet-guard-677.log` remain accurate. The 968-pin
+///      string was made script-neutral once a second script (Demo 1) began
+///      sharing the guard; it is not captured by that evidence log.
 library DeployPolicy {
     /// @dev Mainnet chain ids. Named constants, not literals, so the policy is
     ///      stated once.
@@ -49,12 +51,14 @@ library DeployPolicy {
         }
     }
 
-    /// @notice Enforces the hard chain pin for the BOT-only wrapper script.
-    /// @dev Deliberately ignores any mainnet opt-in: this script exists to
-    ///      deploy to Bohr testnet 968 and nowhere else.
+    /// @notice Enforces the hard chain pin for the BOT-only wrapper scripts.
+    /// @dev Deliberately ignores any mainnet opt-in: these scripts exist to
+    ///      deploy to Bohr testnet 968 and nowhere else. Shared by both the
+    ///      Demo 0 (`DeployNexusEscrowBOT`) and Demo 1 (`DeployNexEscrowCoreBOT`)
+    ///      wrappers, so the revert names the policy, not a single script.
     function requireBotTestnetOnly(uint256 chainId) internal pure {
         if (chainId != BOT_TESTNET_CHAIN_ID) {
-            revert("DeployNexusEscrowBOT: chain id must be 968 (BOT Chain Bohr testnet); aborting");
+            revert("DeployPolicy: chain id must be 968 (BOT Chain Bohr testnet); aborting");
         }
     }
 
